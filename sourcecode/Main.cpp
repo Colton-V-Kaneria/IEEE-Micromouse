@@ -28,20 +28,30 @@ int main(int argc, char* argv[]) {
     maze.mouse_dir = NORTH;
     
     std::cerr << "Begin Maze Algorithm!\n" << std::endl;
-    
-    
-    //This should assign a number describing how far away the specific cell is from the center
-    for(int x = 0; x < 16; x++) 
-    {
-        for(int y = 0; y < 16; y++)
-        {
-            maze.distances[y][x] = x + y;
-        }
-    }
-
 }
 
-//testing
-void updateMousePos(Coord* pos, Direction dir)
+//initialize the distance with the center 4 cells as zero 
+void mazeCenter()
+{
+    if (center == 1)
+    {
+          //This should assign a number describing how far away the specific cell is from the center
+            for(int x = 0; x < 16; x++) 
+        {
+                for(int y = 0; y < 16; y++)
+                {
+                    maze.distances[y][x] = x + y;
+                }
+        }
 
-//testing number 2 updated
+    }
+}
+
+
+// 4 center cells in the middle get set to zero
+
+//
+// The goal cell is centered at (7,7)
+// At any assesible and free cell, its distance away from the center would be
+// |7-x|+|7-y|= remaining distance (essentially manhattan distance)
+//
