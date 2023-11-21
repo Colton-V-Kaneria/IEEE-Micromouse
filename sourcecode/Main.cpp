@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
     std::cerr << "Begin Maze Algorithm!\n" << std::endl;
 }
 
+<<<<<<< HEAD
 //initialize the distance with the center 4 cells as zero 
 void mazeCenter()
 {
@@ -55,3 +56,9 @@ void mazeCenter()
 // At any assesible and free cell, its distance away from the center would be
 // |7-x|+|7-y|= remaining distance (essentially manhattan distance)
 //
+=======
+//testing
+void updateMousePos(Coord* pos, Direction dir)
+
+//testing number 2 
+>>>>>>> e63e5d565a74428c598d06725a244a60a72d5d44
