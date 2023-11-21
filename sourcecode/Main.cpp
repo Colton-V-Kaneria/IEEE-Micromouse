@@ -41,5 +41,7 @@ int main(int argc, char* argv[]) {
 
 }
 
-//testing 
+//testing
 void updateMousePos(Coord* pos, Direction dir)
+
+//testing number 2 
