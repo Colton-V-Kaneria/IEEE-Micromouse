@@ -10,24 +10,39 @@
 #include "API.h"
 #include "FloodFill_DataStructures.h"
 
-//i = row, j = column
+//y = row, x = column
+// NORTH_MASK = 0b1000,
+    // EAST_MASK  = 0b0100,
+    // SOUTH_MASK = 0b0010,
+    // WEST_MASK  = 0b0001
 
 //hardcode outside perimeters outside of functions.
-//for(int i; 1<i<255;i++)
-//  for(int j; 1<j<255;j++)
+//for(int x; 1<x<255;x++)
+//  for(int y; 1<y<255;y++)
         //{
+//Cellwalls might be y, x not x, y.
 
-    if (x)
-            for(int y = 0; y )
-            {
-                cellWalls[0][]
-            }
-        
+//     if (y=0) 
+//     {
+//         cellWalls[x][y] |= SOUTH_MASK;
+//     }
+
+//     if(y=15)
+//     {
+//         cellWalls[x][y] |= NORTH_MASK;
+//     }
+
+//     if(x=0)
+//     {
+//         cellWalls[x][y] |= WEST_MASK;
+//     }
+
+//     if(x=15)
+//     {
+//         cellWalls[x][y] |= EAST_MASK;
+//     }
+//          }
 //
-//wall type cellwalls(255);
-
-
-
 
 Direction dir = NORTH;  //from floodfill header function call
 Maze maze;
