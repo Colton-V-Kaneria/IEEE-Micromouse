@@ -48,12 +48,11 @@ void setPerimeter(struct Maze *maze){
             }
         }
 }
-int center = 1;
 
 //Pass through pointer maze storing data in memory located at struct Maze
 void checkWalls(struct Maze *maze){
     if (API::wallFront())
-        maze ->cellWalls[maze->mouse_pos.y][maze ->mouse_pos.x];
+        maze ->cellWalls[maze->mouse_pos.x][maze ->mouse_pos.y];
 }
 
 int main(int argc, char* argv[]) {
@@ -67,7 +66,9 @@ int main(int argc, char* argv[]) {
 }
 
 //initialize the distance with the center 4 cells as zero 
-void mazeCenter()
+int center = 1;
+//Make center 4 cells zero
+void mazeCenter(struct Maze *distanceMAZE)
 {
     if (center == 1)
     {
@@ -76,21 +77,26 @@ void mazeCenter()
         {
                 for(int y = 0; y < 16; y++)
                 {
-                    maze.distances[y][x] = x + y;
+                    if (x <= 7 && y <= 7){        //mouse is in third quadrant
+                        distanceMAZE->distances[x][y] = ((7-x) + (7-y));
+                    }
+                    else if (x <= 7 && y>7){        //mouse is in 2nd quadrant 
+                        distanceMAZE->distances[x][y] = ((7-x) + (8-y));
+                    }
+                    else if (x > 7 && y<=7){        //fourth quadrant
+                        distanceMAZE->distances[x][y] = ((8-x) + (7-y));
+                    }
+                    else if (x > 7 && y>7){     //first quadrant
+                        distanceMAZE->distances[x][y] = ((8-x) + (8-y));
+                    }
+                    else{
+                        distanceMAZE->distances[x][y] = 0;
+                    }
                 }
         }
 
     }
 }
-
-// 4 center cells in the middle get set to zero
-
-//
-// The goal cell is centered at (7,7)
-// At any assesible and free cell, its distance away from the center would be
-// |7-x|+|7-y|= remaining distance (essentially manhattan distance)
-//
-//testing
 void updateMousePos(Coord* pos, Direction dir){
     
 }
