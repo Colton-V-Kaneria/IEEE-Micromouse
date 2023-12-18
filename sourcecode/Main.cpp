@@ -30,8 +30,6 @@ int main(int argc, char* argv[]) {
     std::cerr << "Begin Maze Algorithm!\n" << std::endl;
 }
 
-
-
 //initialize the distance with the center 4 cells as zero 
 void mazeCenter()
 {

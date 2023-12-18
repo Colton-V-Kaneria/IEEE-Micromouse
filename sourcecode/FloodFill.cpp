@@ -8,7 +8,7 @@
 //Priority list!!!
 //Creating the queue properly
 //Updating the correct cell 
-//Creating GetNeighborcells
+//Creating GetNeighbor cells
 //figure out how to check if cell is blocked
 
 

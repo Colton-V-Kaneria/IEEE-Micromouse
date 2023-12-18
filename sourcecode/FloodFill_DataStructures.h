@@ -1,20 +1,21 @@
 // 16 x 16 2D array for maze
 //starting point coord x=0, y=0
 
-#ifndef FLOODFILL_H
-#define FLOODFILL_H
+#ifndef FLOODFILL_DATASTRUCTURES_H
+#define FLOODFILL_DATASTRUCTURES_H
 
 #include "API.h"
+#include <iostream>
 
 void log(const std::string& text) {
     std::cerr << text << std::endl;
-}
-
+};
+    
 enum Direction {
-    NORTH = 0,
-    EAST = 1,
+    NORTH = 8,
+    EAST = 4,
     SOUTH = 2,
-    WEST = 3
+    WEST = 1,
 };
 
 enum DirectionBitmask {
