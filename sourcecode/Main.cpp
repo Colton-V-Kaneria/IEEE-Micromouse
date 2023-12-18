@@ -10,43 +10,44 @@
 #include "API.h"
 #include "FloodFill_DataStructures.h"
 
+Direction dir = NORTH;  //from floodfill header function call
+Maze maze;
+
 //y = row, x = column
 // NORTH_MASK = 0b1000,
     // EAST_MASK  = 0b0100,
     // SOUTH_MASK = 0b0010,
     // WEST_MASK  = 0b0001
 
-//hardcode outside perimeters outside of functions.
-//for(int x; 1<x<255;x++)
-//  for(int y; 1<y<255;y++)
-        //{
-//Cellwalls might be y, x not x, y.
+//hard code walls for the outside perimeter of the the 16x16 maze
+void setPerimeter(struct Maze *maze){
+    for(int y = 0; y < 16; y++) //iterate through rows from bottom left to to right
+        {
+            for(int x = 0; x < 16; x++)
+            {
 
-//     if (y=0) 
-//     {
-//         cellWalls[x][y] |= SOUTH_MASK;
-//     }
+                if (y == 0) 
+                {
+                    maze->cellWalls[x][y] |= SOUTH_MASK;
+                }
 
-//     if(y=15)
-//     {
-//         cellWalls[x][y] |= NORTH_MASK;
-//     }
+                if(y == 15)
+                {
+                    maze->cellWalls[x][y] |= NORTH_MASK;
+                }
 
-//     if(x=0)
-//     {
-//         cellWalls[x][y] |= WEST_MASK;
-//     }
+                if(x == 0)
+                {
+                    maze->cellWalls[y][x] |= WEST_MASK;
+                }
 
-//     if(x=15)
-//     {
-//         cellWalls[x][y] |= EAST_MASK;
-//     }
-//          }
-//
-
-Direction dir = NORTH;  //from floodfill header function call
-Maze maze;
-
+                if(x == 15)
+                {
+                    maze->cellWalls[y][x] |= EAST_MASK;
+                }
+            }
+        }
+}
 int center = 1;
 
 //Pass through pointer maze storing data in memory located at struct Maze
@@ -56,6 +57,7 @@ void checkWalls(struct Maze *maze){
 }
 
 int main(int argc, char* argv[]) {
+    setPerimeter(&maze);
     API::setColor(0, 0, 'g');   //(0,0), green
 
     maze.mouse_pos = (Coord){0, 0};     //setting the coordinate to 0,0 facing north
@@ -81,7 +83,6 @@ void mazeCenter()
     }
 }
 
-
 // 4 center cells in the middle get set to zero
 
 //
@@ -90,9 +91,7 @@ void mazeCenter()
 // |7-x|+|7-y|= remaining distance (essentially manhattan distance)
 //
 //testing
-void updateMousePos(Coord* pos, Direction dir)
+void updateMousePos(Coord* pos, Direction dir){
+    
+}
 
-//testing number 2 
-
-
-//Test comment 10:04 Pm 11/28/23
