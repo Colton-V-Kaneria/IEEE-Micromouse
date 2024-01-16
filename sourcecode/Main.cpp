@@ -72,6 +72,8 @@ void setPerimeter(struct Maze *maze){
 
 //     }  
 
+    //FOR NOW IGNORE THE FOLLOWING BIT AND ONLY FOCUS ON TOP^^^
+
 //     //WEST
 //     if(maze->mouse_pos.x == 0 && maze->mouse_pos.y < 15)
 //     {
@@ -114,6 +116,8 @@ void setPerimeter(struct Maze *maze){
 
 //     }
 
+//You can uncomment starting below
+
 //      return cellList;
 // }
 
@@ -137,6 +141,7 @@ int main(int argc, char* argv[]) {
 
 // int main(int argc, char* argv[]) 
 // {
+        //Just sets the color of the goal and starting cell
 //     maze.mouse_pos = (Coord){0, 0};
 //     maze.mouse_dir = NORTH;
 //     API::setColor(0, 0, 'r');   //(0,0), green
@@ -144,6 +149,7 @@ int main(int argc, char* argv[]) {
 //     API::setColor(8, 7, 'g');
 //     API::setColor(7, 8, 'g');
 //     API::setColor(7, 7, 'g');
+
 
 //     setPerimeter(&maze);
 //     mazeManhanDist(&maze);
@@ -153,10 +159,10 @@ int main(int argc, char* argv[]) {
 //         scanWalls(&maze);
 
 //         CellList* adjacentCells = getNeighborCells(&maze);
-//         std::cerr << adjacentCells->cells[0].pos.x << "," << adjacentCells->cells[0].pos.y << std::endl;
-//         std::cerr << adjacentCells->cells[1].pos.x << "," << adjacentCells->cells[1].pos.y << std::endl;
-//         std::cerr << adjacentCells->cells[2].pos.x << "," << adjacentCells->cells[2].pos.y << std::endl;
-//         std::cerr << adjacentCells->cells[3].pos.x << "," << adjacentCells->cells[3].pos.y << std::endl;
+//         std::cerr << adjacentCells->cells[0].pos.x << "," << adjacentCells->cells[0].pos.y << std::endl; //Checks north
+//         std::cerr << adjacentCells->cells[1].pos.x << "," << adjacentCells->cells[1].pos.y << std::endl; //Checks East
+//         std::cerr << adjacentCells->cells[2].pos.x << "," << adjacentCells->cells[2].pos.y << std::endl; //Checks South
+//         std::cerr << adjacentCells->cells[3].pos.x << "," << adjacentCells->cells[3].pos.y << std::endl; //Checks West
 
 //         free(adjacentCells->cells);
 //         free(adjacentCells);
