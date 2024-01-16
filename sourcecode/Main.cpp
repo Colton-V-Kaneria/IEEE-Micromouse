@@ -28,12 +28,12 @@ void setPerimeter(struct Maze *maze){
 
                 if (y == 0) 
                 {
-                    maze->cellWalls[x][y] |= SOUTH_MASK;
+                    maze->cellWalls[y][x] |= SOUTH_MASK;
                 }
 
                 if(y == 15)
                 {
-                    maze->cellWalls[x][y] |= NORTH_MASK;
+                    maze->cellWalls[y][x] |= NORTH_MASK;
                 }
 
                 if(x == 0)
@@ -48,6 +48,76 @@ void setPerimeter(struct Maze *maze){
             }
         }
 }
+
+// CellList* getNeighborCells(Maze* maze)
+// {
+//     CellList* cellList = (CellList*)malloc(sizeof(CellList));
+    
+//     //Checks for existing cellls should be done before setting list size
+
+//     cellList->size = 4;
+//     cellList->cells = (Cell*)malloc(cellList->size * sizeof(Cell));
+    
+//     int i = 0;
+
+//     //Checks if north exists
+//     if(maze->mouse_pos.y > 0 && maze->mouse_pos.y < 16 && maze->mouse_pos.x > 0 && maze->mouse_pos.x < 16 )
+//     {
+        
+//         cellList->cells[i]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y + 1}, NORTH, false};
+//         cellList->cells[i+1]= (Cell){(Coord){maze->mouse_pos.x + 1, maze->mouse_pos.y},  EAST, false};
+//         cellList->cells[i+2]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y - 1}, SOUTH, false};
+//         cellList->cells[i+3]= (Cell){(Coord){maze->mouse_pos.x - 1, maze->mouse_pos.y},  WEST, false};
+//         i++;
+
+//     }  
+
+//     //WEST
+//     if(maze->mouse_pos.x == 0 && maze->mouse_pos.y < 15)
+//     {
+//         cellList->cells[i]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y + 1}, NORTH, false};
+//         cellList->cells[i+1]= (Cell){(Coord){maze->mouse_pos.x + 1, maze->mouse_pos.y},  EAST, false};
+//         cellList->cells[i+2]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y - 1}, SOUTH, false};
+//         cellList->cells[i+3]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y},  WEST, false};
+//         i++;
+//     }
+
+//     //EAST
+//     if(maze->mouse_pos.x == 15)
+//     {
+//         cellList->cells[i]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y + 1}, NORTH, false};
+//         cellList->cells[i+1]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y},  EAST, false};
+//         cellList->cells[i+2]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y - 1}, SOUTH, false};
+//         cellList->cells[i+3]= (Cell){(Coord){maze->mouse_pos.x - 1, maze->mouse_pos.y},  WEST, false};
+//         i++;
+//     }
+
+//     //SOUTH
+//     if(maze->mouse_pos.y == 0)
+//     {
+//         cellList->cells[i]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y + 1}, NORTH, false};
+//         cellList->cells[i+1]= (Cell){(Coord){maze->mouse_pos.x + 1, maze->mouse_pos.y},  EAST, false};
+//         cellList->cells[i+2]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y}, SOUTH, false};
+//         cellList->cells[i+3]= (Cell){(Coord){maze->mouse_pos.x - 1, maze->mouse_pos.y},  WEST, false};
+//         i++;
+
+//     }
+
+//     //NORTH
+//     if(maze->mouse_pos.y == 15 && maze->mouse_pos.x > 0)
+//     {
+//         cellList->cells[i]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y}, NORTH, false};
+//         cellList->cells[i+1]= (Cell){(Coord){maze->mouse_pos.x + 1, maze->mouse_pos.y},  EAST, false};
+//         cellList->cells[i+2]= (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y - 1}, SOUTH, false};
+//         cellList->cells[i+3]= (Cell){(Coord){maze->mouse_pos.x - 1, maze->mouse_pos.y},  WEST, false};
+//         i++;
+
+//     }
+
+//      return cellList;
+// }
+
+
 
 //Pass through pointer maze storing data in memory located at struct Maze
 void checkWalls(struct Maze *maze){
@@ -64,6 +134,55 @@ int main(int argc, char* argv[]) {
     
     std::cerr << "Begin Maze Algorithm!\n" << std::endl;
 }
+
+// int main(int argc, char* argv[]) 
+// {
+//     maze.mouse_pos = (Coord){0, 0};
+//     maze.mouse_dir = NORTH;
+//     API::setColor(0, 0, 'r');   //(0,0), green
+//     API::setColor(8, 8, 'g');
+//     API::setColor(8, 7, 'g');
+//     API::setColor(7, 8, 'g');
+//     API::setColor(7, 7, 'g');
+
+//     setPerimeter(&maze);
+//     mazeManhanDist(&maze);
+
+//     while (true) {
+
+//         scanWalls(&maze);
+
+//         CellList* adjacentCells = getNeighborCells(&maze);
+//         std::cerr << adjacentCells->cells[0].pos.x << "," << adjacentCells->cells[0].pos.y << std::endl;
+//         std::cerr << adjacentCells->cells[1].pos.x << "," << adjacentCells->cells[1].pos.y << std::endl;
+//         std::cerr << adjacentCells->cells[2].pos.x << "," << adjacentCells->cells[2].pos.y << std::endl;
+//         std::cerr << adjacentCells->cells[3].pos.x << "," << adjacentCells->cells[3].pos.y << std::endl;
+
+//         free(adjacentCells->cells);
+//         free(adjacentCells);
+
+
+//         updateSimulator(maze);
+
+//         std::cerr << "(" << maze.mouse_pos.x << ", " << maze.mouse_pos.y << ")" << std::endl;
+
+//         // Left Wall Follow Code
+//         if (!API::wallLeft()) 
+//         {
+//             API::turnLeft();
+//             maze.mouse_dir = (Direction)((maze.mouse_dir + 3) % 4);
+//         }
+//         while (API::wallFront()) 
+//         {
+//             API::turnRight();
+//             maze.mouse_dir = (Direction)((maze.mouse_dir + 1) % 4);
+//         }
+
+//         API::moveForward();
+//         updateMousePos(&maze.mouse_pos, maze.mouse_dir);
+//     }
+// }
+
 
 //initialize the distance with the center 4 cells as zero 
 int center = 1;
