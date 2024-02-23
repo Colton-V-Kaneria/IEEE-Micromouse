@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 
+#include <queue>
+
 #include "API.h"
 
 void log(const std::string& text) 
@@ -112,19 +114,15 @@ CellList* getNeighborCells(Maze* maze)
     cellList->size = 4;
     cellList->cells = (Cell*)malloc(cellList->size * sizeof(Cell)); // allocates number of bits the struct requires
 
-    int x = maze->mouse_pos.x;
+    int x = maze->mouse_pos.x;              // these are just to make it easier to type the mouse's coordinates below
     int y = maze->mouse_pos.y;
-
-    for (int j = 0; j < 4; j++)
-    {
-        cellList->cells[j].blocked = true;
-    }
 
     // north cell
     cellList->cells[0].pos.x = x;
     cellList->cells[0].pos.y = y+1;
     cellList->cells[0].dir = NORTH;
     cellList->cells[0].blocked = maze->cellWalls[y][x] & NORTH_MASK;
+    // ^^use MASK &'ed with cellWalls's bit value at the mouse's current coordinates to determine if a cell is blocked
 
     // east cell
     cellList->cells[1].pos.x = x+1;
