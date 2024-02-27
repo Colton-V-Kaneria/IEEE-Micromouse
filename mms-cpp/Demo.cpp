@@ -145,6 +145,30 @@ CellList* getNeighborCells(Maze* maze)
     return cellList;
 };
 
+Cell getBestCell(CellList* cellList, Maze* maze)
+{
+    Cell best_cell = cellList->cells[0];
+    Cell prospect;
+    int x_min, y_min, x_new, y_new;
+
+    for (int i = 1; i < 4; i++)
+    {
+        x_min = best_cell.pos.x;
+        y_min = best_cell.pos.y;
+
+        prospect = cellList->cells[i];
+
+        x_new = prospect.pos.x;
+        y_new = prospect.pos.y;
+
+        if (maze->distances[y_new][x_new] < maze->distances[y_min][x_min])
+        {
+            best_cell = prospect;
+        }
+    }
+    return best_cell;
+}
+
 Maze maze;
 
 int temp_value = 20;
