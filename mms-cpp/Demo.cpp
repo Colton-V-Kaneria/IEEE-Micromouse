@@ -5,6 +5,11 @@
 
 #include "API.h"
 
+//These are test goal cell coordinates
+
+
+using namespace std;
+
 void log(const std::string& text) 
 {
     std::cerr << text << std::endl;
@@ -169,6 +174,16 @@ Cell getBestCell(CellList* cellList, Maze* maze)
     return best_cell;
 }
 
+/*Direction clockwiseStep(Maze maze)
+{
+    return maze.mouse_dir
+}*/
+
+/*Direction counterClockwiseStep()
+{
+
+}*/
+
 Maze maze;
 
 int temp_value = 20;
@@ -177,6 +192,9 @@ int main(int argc, char* argv[])
 {
     maze.mouse_pos = (Coord){0, 0};
     maze.mouse_dir = NORTH;
+
+    //queue initialization
+    queue<Cell> cell_queue;
 
     // 4. POINTER DEMO
     //pointer_demo(&temp_value);
