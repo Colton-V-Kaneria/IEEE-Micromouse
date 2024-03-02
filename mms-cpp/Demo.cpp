@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 
+#include <queue>
+
 #include "API.h"
 
 void log(const std::string& text) 
@@ -112,41 +114,33 @@ CellList* getNeighborCells(Maze* maze)
     cellList->size = 4;
     cellList->cells = (Cell*)malloc(cellList->size * sizeof(Cell)); // allocates number of bits the struct requires
 
-    for (int j = 0; j < 4; j++)
-    {
-        cellList->cells[j].pos.x = -1;
-        cellList->cells[j].pos.y = -1;
-    }
+    int x = maze->mouse_pos.x;              // these are just to make it easier to type the mouse's coordinates below
+    int y = maze->mouse_pos.y;
 
-    // check if north cell
-    if (maze->mouse_pos.y != 15)
-    {
-        int x = maze->mouse_pos.x;
-        int y = maze->mouse_pos.y;
+    // north cell
+    cellList->cells[0].pos.x = x;
+    cellList->cells[0].pos.y = y+1;
+    cellList->cells[0].dir = NORTH;
+    cellList->cells[0].blocked = maze->cellWalls[y][x] & NORTH_MASK;
+    // ^^use MASK &'ed with cellWalls's bit value at the mouse's current coordinates to determine if a cell is blocked
 
-        bool is_blocked = (bool)(maze->cellWalls[y + 1][x] & NORTH_MASK);
-
-        cellList->cells[i] = (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y+1}, NORTH, is_blocked};
-        i++;
-    }
-    // check if east cell
-    if (maze->mouse_pos.x != 15)
-    {
-        cellList->cells[i] = (Cell){(Coord){maze->mouse_pos.x+1, maze->mouse_pos.y}, EAST, true};
-        i++;
-    }
-    // check if south cell
-    if (maze->mouse_pos.y != 0)
-    {
-        cellList->cells[i] = (Cell){(Coord){maze->mouse_pos.x, maze->mouse_pos.y-1}, SOUTH, true};
-        i++;
-    }
-    // check if west cell
-    if (maze->mouse_pos.x != 0)
-    {
-        cellList->cells[i] = (Cell){(Coord){maze->mouse_pos.x-1, maze->mouse_pos.y}, WEST, true};
-        i++;
-    }
+    // east cell
+    cellList->cells[1].pos.x = x+1;
+    cellList->cells[1].pos.y = y;
+    cellList->cells[1].dir = EAST;
+    cellList->cells[1].blocked = maze->cellWalls[y][x] & EAST_MASK;
+    
+    // south cell
+    cellList->cells[2].pos.x = x;
+    cellList->cells[2].pos.y = y-1;
+    cellList->cells[2].dir = SOUTH;
+    cellList->cells[2].blocked = maze->cellWalls[y][x] & SOUTH_MASK;
+    
+    // west cell
+    cellList->cells[3].pos.x = x-1;
+    cellList->cells[3].pos.y = y;
+    cellList->cells[3].dir = WEST;
+    cellList->cells[3].blocked = maze->cellWalls[y][x] & WEST_MASK;
     
     return cellList;
 };
@@ -161,8 +155,8 @@ int main(int argc, char* argv[])
     maze.mouse_dir = NORTH;
 
     // 4. POINTER DEMO
-    pointer_demo(&temp_value);
-    std::cerr << temp_value << std::endl;
+    //pointer_demo(&temp_value);
+    //std::cerr << temp_value << std::endl;
 
     // 1. FILL THIS IN
     for(int x = 0; x < 16; x++) {
@@ -176,10 +170,12 @@ int main(int argc, char* argv[])
         CellList* adjacentCells = getNeighborCells(&maze);
 
         std::cerr << "NEIGHBOR CELLS" << std::endl;
+        
+        std::cerr << "At (" << maze.mouse_pos.x << ", " << maze.mouse_pos.y << ")" << std::endl;
 
         for (int i = 0; i < adjacentCells->size; i++)
         {
-            std::cerr << adjacentCells->cells[i].pos.x << ", " << adjacentCells->cells[i].pos.y << std::endl;
+            std::cerr << "(" << adjacentCells->cells[i].pos.x << ", " << adjacentCells->cells[i].pos.y << ")\t blocked: " << adjacentCells->cells[i].blocked << std::endl;
         }
 
         free(adjacentCells->cells);
@@ -187,7 +183,6 @@ int main(int argc, char* argv[])
 
         updateSimulator(maze);
 
-        std::cerr << "(" << maze.mouse_pos.x << ", " << maze.mouse_pos.y << ")" << std::endl;
 
         // Left Wall Follow Code
         if (!API::wallLeft()) 
