@@ -152,21 +152,19 @@ CellList* getNeighborCells(Maze* maze)
 
 Cell getBestCell(CellList* cellList, Maze* maze)
 {
-    Cell best_cell = cellList->cells[0];
+    Cell best_cell;
     Cell prospect;
-    int x_min, y_min, x_new, y_new;
+    int min_dist = 255;
+    int x_new, y_new;
 
-    for (int i = 1; i < 4; i++)
+    for (int i = 0; i < cellList->size; i++)
     {
-        x_min = best_cell.pos.x;
-        y_min = best_cell.pos.y;
-
         prospect = cellList->cells[i];
 
         x_new = prospect.pos.x;
         y_new = prospect.pos.y;
 
-        if (maze->distances[y_new][x_new] < maze->distances[y_min][x_min])
+        if (maze->distances[y_new][x_new] < min_dist && !prospect.blocked)
         {
             best_cell = prospect;
         }
@@ -174,15 +172,21 @@ Cell getBestCell(CellList* cellList, Maze* maze)
     return best_cell;
 }
 
-/*Direction clockwiseStep(Maze maze)
+Direction clockwiseStep(Maze* maze)
 {
-    return maze.mouse_dir
-}*/
+    return Direction((maze->mouse_dir + 1) % 4);
+}
 
-/*Direction counterClockwiseStep()
+Direction counterClockwiseStep(Maze* maze)
 {
+    return Direction((maze->mouse_dir + 3) % 4);
+}
 
-}*/
+void setGoalCell(Maze* maze, int Xg, int Yg)
+{
+    maze->goalPos->x = Xg;
+    maze->goalPos->y = Yg;
+}
 
 Maze maze;
 
@@ -219,6 +223,10 @@ int main(int argc, char* argv[])
         {
             std::cerr << "(" << adjacentCells->cells[i].pos.x << ", " << adjacentCells->cells[i].pos.y << ")\t blocked: " << adjacentCells->cells[i].blocked << std::endl;
         }
+
+        Cell best = getBestCell(adjacentCells, &maze);
+
+        std::cerr << "Best Cell: (" << best.pos.x << ", " << best.pos.y << ")" << std::endl;
 
         free(adjacentCells->cells);
         free(adjacentCells);
