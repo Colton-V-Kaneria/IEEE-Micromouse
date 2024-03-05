@@ -5,6 +5,11 @@
 
 #include "API.h"
 
+//These are test goal cell coordinates
+
+
+using namespace std;
+
 void log(const std::string& text) 
 {
     std::cerr << text << std::endl;
@@ -145,6 +150,44 @@ CellList* getNeighborCells(Maze* maze)
     return cellList;
 };
 
+Cell getBestCell(CellList* cellList, Maze* maze)
+{
+    Cell best_cell;
+    Cell prospect;
+    int min_dist = 255;
+    int x_new, y_new;
+
+    for (int i = 0; i < cellList->size; i++)
+    {
+        prospect = cellList->cells[i];
+
+        x_new = prospect.pos.x;
+        y_new = prospect.pos.y;
+
+        if (maze->distances[y_new][x_new] < min_dist && !prospect.blocked)
+        {
+            best_cell = prospect;
+        }
+    }
+    return best_cell;
+}
+
+Direction clockwiseStep(Maze* maze)
+{
+    return Direction((maze->mouse_dir + 1) % 4);
+}
+
+Direction counterClockwiseStep(Maze* maze)
+{
+    return Direction((maze->mouse_dir + 3) % 4);
+}
+
+void setGoalCell(Maze* maze, int Xg, int Yg)
+{
+    maze->goalPos->x = Xg;
+    maze->goalPos->y = Yg;
+}
+
 Maze maze;
 
 int temp_value = 20;
@@ -153,6 +196,9 @@ int main(int argc, char* argv[])
 {
     maze.mouse_pos = (Coord){0, 0};
     maze.mouse_dir = NORTH;
+
+    //queue initialization
+    queue<Cell> cell_queue;
 
     // 4. POINTER DEMO
     //pointer_demo(&temp_value);
@@ -177,6 +223,10 @@ int main(int argc, char* argv[])
         {
             std::cerr << "(" << adjacentCells->cells[i].pos.x << ", " << adjacentCells->cells[i].pos.y << ")\t blocked: " << adjacentCells->cells[i].blocked << std::endl;
         }
+
+        Cell best = getBestCell(adjacentCells, &maze);
+
+        std::cerr << "Best Cell: (" << best.pos.x << ", " << best.pos.y << ")" << std::endl;
 
         free(adjacentCells->cells);
         free(adjacentCells);
