@@ -10,7 +10,7 @@
 #include "API.h"
 #include "FloodFill_DataStructures.h"
 
-Direction dir = NORTH;  //from floodfill header function call
+Direction dir = NORTH;  
 Maze maze;
 
 //y = row, x = column
