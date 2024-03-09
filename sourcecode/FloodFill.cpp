@@ -49,11 +49,11 @@ for (int u = 7; u < 9; u++)
 for () //We add the goal cells to the queue given that this is where floodfill begins
 {
 
-    Coord *goalCell;
-    goalCell->x = 7;
-    goalCell->y =7;
+    Coord goalCell1;
+    goalCell1.x = 7;
+    goalCell1.y =7;
 
-    queue.push(goalCell);
+    queue.push(goalCell1);
     tail++;
 
 }
@@ -84,7 +84,6 @@ while (tail - head > 0)
     }
 
 }
-
 
 
 }
