@@ -5,10 +5,13 @@
 
 #include "API.h"
 
-//These are test goal cell coordinates
-
+#define MAX_COST 255
 
 using namespace std;
+
+//These are test goal cell coordinates
+int Xg = 8;
+int Yg = 8;
 
 void log(const std::string& text) 
 {
@@ -57,7 +60,7 @@ struct Maze {               // the maze has coordinates of mouse, direction of m
     int distances[16][16];      // this 2D array represents the distance value held by each position
     int cellWalls[16][16];      // this 2D array represents the bitwise wall indicator
 
-    Coord* goalPos;
+    Coord goalPos;
 };
 
 char dir_chars[4] = {'n', 'e', 's', 'w'};
@@ -88,7 +91,7 @@ void updateSimulator(Maze maze) // redraws the maze in simulator after each loop
 void scanWalls(Maze* maze)
 {
     if (API::wallFront())
-        maze->cellWalls[maze->mouse_pos.y][maze->mouse_pos.x] |= dir_mask[maze->mouse_dir];                 // bitwise OR chagnes specific bit to specify wall detected
+        maze->cellWalls[maze->mouse_pos.y][maze->mouse_pos.x] |= dir_mask[maze->mouse_dir];                 // bitwise OR changes specific bit to specify wall detected
     if (API::wallRight())
         maze->cellWalls[maze->mouse_pos.y][maze->mouse_pos.x] |= dir_mask[(maze->mouse_dir + 1) % 4];
     if (API::wallLeft())
@@ -110,7 +113,7 @@ void updateMousePos(Coord* pos, Direction dir) // Changed to pointer of coordina
 }
 
 // 6. FILL THIS IN
-CellList* getNeighborCells(Maze* maze)
+CellList* getNeighborCells(Maze* maze, Coord position)
 {
     CellList* cellList = (CellList*)malloc(sizeof(CellList));
     int i = 0;
@@ -119,8 +122,8 @@ CellList* getNeighborCells(Maze* maze)
     cellList->size = 4;
     cellList->cells = (Cell*)malloc(cellList->size * sizeof(Cell)); // allocates number of bits the struct requires
 
-    int x = maze->mouse_pos.x;              // these are just to make it easier to type the mouse's coordinates below
-    int y = maze->mouse_pos.y;
+    int x = position.x;              // these are just to make it easier to type the mouse's coordinates below
+    int y = position.y;
 
     // north cell
     cellList->cells[0].pos.x = x;
@@ -174,18 +177,83 @@ Cell getBestCell(CellList* cellList, Maze* maze)
 
 Direction clockwiseStep(Maze* maze)
 {
+    API::turnRight();
     return Direction((maze->mouse_dir + 1) % 4);
 }
 
 Direction counterClockwiseStep(Maze* maze)
 {
+    API::turnLeft();
     return Direction((maze->mouse_dir + 3) % 4);
 }
 
 void setGoalCell(Maze* maze, int Xg, int Yg)
 {
-    maze->goalPos->x = Xg;
-    maze->goalPos->y = Yg;
+    Coord coord;
+    coord.x = Xg;
+    coord.y = Yg;
+
+    maze->goalPos = coord;
+}
+
+void showq(queue<Coord> gq)
+{
+    queue<Coord> g = gq;
+    while (!g.empty()) {
+        cerr << "\t(" << g.front().x << ", " << g.front().y << ")";
+        g.pop();
+    }
+    cerr << '\n';
+}
+
+void Floodfill(Maze* maze)
+{
+    //queue initialization
+    queue<Coord> coord_queue;
+    
+    for (int x = 0; x < 16; x++)
+    {
+        for (int y = 0; y < 16; y++)
+        {
+            maze->distances[y][x] = MAX_COST;
+        }
+    }
+
+    cerr << "Goal Cell: (" << maze->goalPos.x << ", " << maze->goalPos.y << ")\n";
+    coord_queue.push(maze->goalPos);
+
+    maze->distances[maze->goalPos.y][maze->goalPos.x] = 0;
+
+    while(!coord_queue.empty())
+    {
+        Coord cur_pos = coord_queue.front();
+        coord_queue.pop();
+        
+        int newcost = maze->distances[cur_pos.y][cur_pos.x] + 1;
+
+        CellList *neighborCells = getNeighborCells(maze, cur_pos);
+
+        for (int i = 0; i < 4; i++)
+        {
+            Cell cell = neighborCells->cells[i];
+            int x = cell.pos.x;
+            int y = cell.pos.y;
+
+            if ((cell.blocked == false) && (0<=x && x<16) && (0<=y && y<16))
+            {
+                if (maze->distances[y][x] > newcost)
+                {
+                    maze->distances[y][x] = newcost;
+                    
+                    Coord new_coord;
+                    new_coord.x = x;
+                    new_coord.y = y;
+
+                    coord_queue.push(new_coord);
+                }
+            }
+        }
+    }
 }
 
 Maze maze;
@@ -197,23 +265,26 @@ int main(int argc, char* argv[])
     maze.mouse_pos = (Coord){0, 0};
     maze.mouse_dir = NORTH;
 
-    //queue initialization
-    queue<Cell> cell_queue;
+    setGoalCell(&maze, Xg, Yg);
 
     // 4. POINTER DEMO
     //pointer_demo(&temp_value);
     //std::cerr << temp_value << std::endl;
 
     // 1. FILL THIS IN
-    for(int x = 0; x < 16; x++) {
-        for(int y = 0; y < 16; y++) {
-            maze.distances[y][x] = x + y;
-        }
-    }
+    
+    // for(int x = 0; x < 16; x++) {
+    //     for(int y = 0; y < 16; y++) {
+    //         maze.distances[y][x] = x + y;
+    //     }
+    // }
+    
 
     while (true) {
+        Floodfill(&maze);
+        
         scanWalls(&maze);
-        CellList* adjacentCells = getNeighborCells(&maze);
+        CellList* adjacentCells = getNeighborCells(&maze, maze.mouse_pos);
 
         std::cerr << "NEIGHBOR CELLS" << std::endl;
         
@@ -232,8 +303,7 @@ int main(int argc, char* argv[])
         free(adjacentCells);
 
         updateSimulator(maze);
-
-
+        
         // Left Wall Follow Code
         if (!API::wallLeft()) 
         {
