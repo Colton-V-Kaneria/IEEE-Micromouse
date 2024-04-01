@@ -267,18 +267,6 @@ int main(int argc, char* argv[])
 
     setGoalCell(&maze, Xg, Yg);
 
-    // 4. POINTER DEMO
-    //pointer_demo(&temp_value);
-    //std::cerr << temp_value << std::endl;
-
-    // 1. FILL THIS IN
-    
-    // for(int x = 0; x < 16; x++) {
-    //     for(int y = 0; y < 16; y++) {
-    //         maze.distances[y][x] = x + y;
-    //     }
-    // }
-    
 
     while (true) {
         Floodfill(&maze);
@@ -304,7 +292,7 @@ int main(int argc, char* argv[])
 
         updateSimulator(maze);
         
-        // Left Wall Follow Code
+
         if (!API::wallLeft()) 
         {
             API::turnLeft();
@@ -318,10 +306,8 @@ int main(int argc, char* argv[])
 
         API::moveForward();
     
-        // 3. UPDATE THIS WITH POINTERS updateMousePos
         updateMousePos(&maze.mouse_pos, maze.mouse_dir);
 
-        // 5. MOVE TO updateSimulator() + scanWalls() FUNCTION
         if (API::wallFront())
             API::setWall(maze.mouse_pos.x, maze.mouse_pos.y, dir_chars[maze.mouse_dir]);
         if (API::wallRight())
