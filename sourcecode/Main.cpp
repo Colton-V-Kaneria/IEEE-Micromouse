@@ -206,16 +206,38 @@ void setGoalCell(Maze* maze, int Xg, int Yg)
 //     cerr << '\n';
 // }
 
+Coord queue[255];
+int queue_count, head, tail = 0;
+
+bool Queue_Full()
+{
+    return queue_count == 255;
+}
+
+bool Queue_Empty()
+{
+    return queue_count == 0;
+}
+
+void Queue_Push(Coord data)
+{
+    if(!Queue_Full())
+    {
+        Coord queue[head];
+        queue[head].x = data.x;
+        queue[head].y = data.y;
+        queue_count++; 
+
+    }
+}
+
 
 
 void Floodfill(Maze* maze)
 {
     //queue initialization
-    queue<Coord> coord_queue;
+    //queue<Coord> coord_queue;
     Coord queue[255];
-    int head, tail = 0;
-
-
     for (int x = 0; x < 16; x++)
     {
         for (int y = 0; y < 16; y++)
@@ -229,7 +251,7 @@ void Floodfill(Maze* maze)
         for (int y = 7; y < 8; y++)
         {
             maze->distances[y][x] = 0;
-            //queue.push (goal cells)
+            Queue_Push(maze->goalPos);
             tail++; 
 
         }
@@ -237,7 +259,10 @@ void Floodfill(Maze* maze)
 
     while(tail - head > 0)
     {
-        Coord cur_pos = queue[head];
+        Coord cur_pos;
+        cur_pos.x = queue[head].x;
+
+
         head++;
         int newcost = maze->distances[cur_pos.y][cur_pos.x] + 1;
 
@@ -278,7 +303,7 @@ void Floodfill(Maze* maze)
     cerr << "Goal Cell: (" << maze->goalPos.x << ", " << maze->goalPos.y << ")\n";
     //queue.push(maze->goalPos);
 
-    // maze->distances[maze->goalPos.y][maze->goalPos.x] = 0;
+    //maze->distances[maze->goalPos.y][maze->goalPos.x] = 0;
 
     while(!coord_queue.empty())
     {
