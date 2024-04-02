@@ -231,7 +231,11 @@ void Queue_Push(Coord data)
     }
 }
 
-
+void GoalCell()
+{
+    Coord GoalCell;
+    Goal 
+}
 
 void Floodfill(Maze* maze)
 {
@@ -250,8 +254,11 @@ void Floodfill(Maze* maze)
     {
         for (int y = 7; y < 8; y++)
         {
+            Coord GoalCell;
+            GoalCell.x = x;
+            GoalCell.y = y;
             maze->distances[y][x] = 0;
-            Queue_Push(maze->goalPos);
+            Queue_Push(GoalCell);
             tail++; 
 
         }
@@ -283,14 +290,12 @@ void Floodfill(Maze* maze)
                     Coord queue[tail];
                     queue[tail].x = x;
                     queue[tail].y = y;
-
+                    tail++;
                     // Coord new_coord;
                     // new_coord.x = x;
                     // new_coord.y = y;
                     // coord_queue.push(new_coord);
                     //queue.push(queue[tail]);
-
-                    tail++; 
 
                 }
             }
