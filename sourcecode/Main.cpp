@@ -231,12 +231,6 @@ void Queue_Push(Coord data)
     }
 }
 
-void GoalCell()
-{
-    Coord GoalCell;
-    Goal 
-}
-
 void Floodfill(Maze* maze)
 {
     //queue initialization
@@ -268,9 +262,9 @@ void Floodfill(Maze* maze)
     {
         Coord cur_pos;
         cur_pos.x = queue[head].x;
-
-
+        cur_pos.y = queue[head].y;
         head++;
+
         int newcost = maze->distances[cur_pos.y][cur_pos.x] + 1;
 
         CellList *neighborCells = getNeighborCells(maze, cur_pos);
@@ -310,36 +304,36 @@ void Floodfill(Maze* maze)
 
     //maze->distances[maze->goalPos.y][maze->goalPos.x] = 0;
 
-    while(!coord_queue.empty())
-    {
-        Coord cur_pos = coord_queue.front();
-        coord_queue.pop();
+    // while(!coord_queue.empty())
+    // {
+    //     Coord cur_pos = coord_queue.front();
+    //     coord_queue.pop();
         
-        int newcost = maze->distances[cur_pos.y][cur_pos.x] + 1;
+    //     int newcost = maze->distances[cur_pos.y][cur_pos.x] + 1;
 
-        CellList *neighborCells = getNeighborCells(maze, cur_pos);
+    //     CellList *neighborCells = getNeighborCells(maze, cur_pos);
 
-        for (int i = 0; i < 4; i++)
-        {
-            Cell cell = neighborCells->cells[i];
-            int x = cell.pos.x;
-            int y = cell.pos.y;
+    //     for (int i = 0; i < 4; i++)
+    //     {
+    //         Cell cell = neighborCells->cells[i];
+    //         int x = cell.pos.x;
+    //         int y = cell.pos.y;
 
-            if ((cell.blocked == false) && (0<=x && x<16) && (0<=y && y<16))
-            {
-                if (maze->distances[y][x] > newcost)
-                {
-                    maze->distances[y][x] = newcost;
+    //         if ((cell.blocked == false) && (0<=x && x<16) && (0<=y && y<16))
+    //         {
+    //             if (maze->distances[y][x] > newcost)
+    //             {
+    //                 maze->distances[y][x] = newcost;
                     
-                    Coord new_coord;
-                    new_coord.x = x;
-                    new_coord.y = y;
+    //                 Coord new_coord;
+    //                 new_coord.x = x;
+    //                 new_coord.y = y;
 
-                    coord_queue.push(new_coord);
-                }
-            }
-        }
-    }
+    //                 coord_queue.push(new_coord);
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 Maze maze;
