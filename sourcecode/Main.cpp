@@ -196,21 +196,26 @@ void setGoalCell(Maze* maze, int Xg, int Yg)
     maze->goalPos = coord;
 }
 
-void showq(queue<Coord> gq)
-{
-    queue<Coord> g = gq;
-    while (!g.empty()) {
-        cerr << "\t(" << g.front().x << ", " << g.front().y << ")";
-        g.pop();
-    }
-    cerr << '\n';
-}
+// void showq(queue<Coord> gq)
+// {
+//     queue<Coord> g = gq;
+//     while (!g.empty()) {
+//         cerr << "\t(" << g.front().x << ", " << g.front().y << ")";
+//         g.pop();
+//     }
+//     cerr << '\n';
+// }
+
+
 
 void Floodfill(Maze* maze)
 {
     //queue initialization
     queue<Coord> coord_queue;
-    
+    Coord queue[255];
+    int head, tail = 0;
+
+
     for (int x = 0; x < 16; x++)
     {
         for (int y = 0; y < 16; y++)
@@ -219,10 +224,61 @@ void Floodfill(Maze* maze)
         }
     }
 
-    cerr << "Goal Cell: (" << maze->goalPos.x << ", " << maze->goalPos.y << ")\n";
-    coord_queue.push(maze->goalPos);
+    for (int x = 7; x < 8; x++)
+    {
+        for (int y = 7; y < 8; y++)
+        {
+            maze->distances[y][x] = 0;
+            //queue.push (goal cells)
+            tail++; 
 
-    maze->distances[maze->goalPos.y][maze->goalPos.x] = 0;
+        }
+    }
+
+    while(tail - head > 0)
+    {
+        Coord cur_pos = queue[head];
+        head++;
+        int newcost = maze->distances[cur_pos.y][cur_pos.x] + 1;
+
+        CellList *neighborCells = getNeighborCells(maze, cur_pos);
+
+        for (int i = 0; i < 4; i++)
+        {
+            Cell cell = neighborCells->cells[i];
+            int x = cell.pos.x;
+            int y = cell.pos.y;
+
+            if ((cell.blocked == false) && (0<=x && x<16) && (0<=y && y<16))
+            {
+                if (maze->distances[y][x] > newcost)
+                {
+                    maze->distances[y][x] = newcost;
+                    
+                    Coord queue[tail];
+                    queue[tail].x = x;
+                    queue[tail].y = y;
+
+                    // Coord new_coord;
+                    // new_coord.x = x;
+                    // new_coord.y = y;
+                    // coord_queue.push(new_coord);
+                    //queue.push(queue[tail]);
+
+                    tail++; 
+
+                }
+            }
+        }
+
+
+
+    }
+
+    cerr << "Goal Cell: (" << maze->goalPos.x << ", " << maze->goalPos.y << ")\n";
+    //queue.push(maze->goalPos);
+
+    // maze->distances[maze->goalPos.y][maze->goalPos.x] = 0;
 
     while(!coord_queue.empty())
     {

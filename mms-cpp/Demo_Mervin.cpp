@@ -2,7 +2,7 @@
 #include <string>
 
 #include "API.h"
-#include "FloodFill.h"
+#include "FloodFill_DataStructures.h"
 
 void updateSimulator(Maze maze) // redraws the maze in simulator after each loop in main
 {
