@@ -9,10 +9,6 @@
 
 using namespace std;
 
-//These are test goal cell coordinates
-int Xg = 8;
-int Yg = 8;
-
 void log(const std::string& text) 
 {
     std::cerr << text << std::endl;
@@ -60,7 +56,7 @@ struct Maze {               // the maze has coordinates of mouse, direction of m
     int distances[16][16];      // this 2D array represents the distance value held by each position
     int cellWalls[16][16];      // this 2D array represents the bitwise wall indicator
 
-    Coord goalPos;
+    Coord goalPos[4];
 };
 
 char dir_chars[4] = {'n', 'e', 's', 'w'};
@@ -99,8 +95,7 @@ void scanWalls(Maze* maze)
     int x = maze->mouse_pos.x;
     int y = maze->mouse_pos.y;
 
-    int x2 = x; // these hold the coordinates of an adjacent cell, we will change them later
-    int y2 = y;
+    int xA, yA;
 
     if (API::wallFront())
     {
@@ -108,22 +103,26 @@ void scanWalls(Maze* maze)
         switch ((int)(maze->mouse_dir))
         {
             case 0:
-                y2++;
+                xA = x;
+                yA = y+1;
                 break;
             case 1:
-                x2++;
+                xA = x+1;
+                yA = y;
                 break;
             case 2:
-                y2--;
+                xA = x;
+                yA = y-1;
                 break;
             case 3:
-                x2--;
+                xA = x-1;
+                yA = y;
                 break;
         }
-        if (!OOBCheck(x2, y2))  // if the adjacent cell is not OOB, update its walls
+        if (!OOBCheck(xA, yA))  // if the adjacent cell is not OOB, update its walls
         {
-            cerr << "Adjacent cell: (" << x2 << ", " << y2 << ")\n";
-            maze->cellWalls[y2][x2] |= dir_mask[(maze->mouse_dir + 2) % 4];
+            cerr << "Blocked cell: (" << xA << ", " << yA << ")\n";
+            maze->cellWalls[yA][xA] |= dir_mask[(maze->mouse_dir + 2) % 4];
         }
     }
     if (API::wallRight())
@@ -132,22 +131,26 @@ void scanWalls(Maze* maze)
         switch ((int)(maze->mouse_dir))
         {
             case 3:
-                y2++;
+                xA = x;
+                yA = y+1;
                 break;
             case 0:
-                x2++;
+                xA = x+1;
+                yA = y;
                 break;
             case 1:
-                y2--;
+                xA = x;
+                yA = y-1;
                 break;
             case 2:
-                x2--;
+                xA = x-1;
+                yA = y;
                 break;
         }
-        if (!OOBCheck(x2, y2))  // if the adjacent cell is not OOB, update its walls
+        if (!OOBCheck(xA, yA))  // if the adjacent cell is not OOB, update its walls
         {
-            cerr << "Adjacent cell: (" << x2 << ", " << y2 << ")\n";
-            maze->cellWalls[y2][x2] |= dir_mask[(maze->mouse_dir + 3) % 4];
+            cerr << "Blocked cell: (" << xA << ", " << yA << ")\n";
+            maze->cellWalls[yA][xA] |= dir_mask[(maze->mouse_dir + 3) % 4];
         }
     }
     if (API::wallLeft())
@@ -156,22 +159,26 @@ void scanWalls(Maze* maze)
         switch ((int)(maze->mouse_dir))
         {
             case 1:
-                y2++;
+                xA = x;
+                yA = y+1;
                 break;
             case 2:
-                x2++;
+                xA = x+1;
+                yA = y;
                 break;
             case 3:
-                y2--;
+                xA = x;
+                yA = y-1;
                 break;
             case 0:
-                x2--;
+                xA = x-1;
+                yA = y;
                 break;
         }
-        if (!OOBCheck(x2, y2))  // if the adjacent cell is not OOB, update its walls
+        if (!OOBCheck(xA, yA))  // if the adjacent cell is not OOB, update its walls
         {
-            cerr << "Adjacent cell: (" << x2 << ", " << y2 << ")\n";
-            maze->cellWalls[y2][x2] |= dir_mask[(maze->mouse_dir + 1) % 4];
+            cerr << "Blocked cell: (" << xA << ", " << yA << ")\n";
+            maze->cellWalls[yA][xA] |= dir_mask[(maze->mouse_dir + 1) % 4];
         }
     }
 }
@@ -298,13 +305,10 @@ void move(Maze* maze, Direction dest_dir)
     API::moveForward(); // move the mouse one space in the direction it is facing
 }
 
-void setGoalCell(Maze* maze, int Xg, int Yg)
+void setGoalCell(Maze* maze, Coord goal_cells[4])
 {
-    Coord coord;
-    coord.x = Xg;
-    coord.y = Yg;
-
-    maze->goalPos = coord;
+    //maze->goalPos = goal_cells;
+    memcpy(maze->goalPos, goal_cells, sizeof(maze->goalPos));
 }
 
 void showq(queue<Coord> gq)
@@ -332,10 +336,13 @@ void Floodfill(Maze* maze)
     }
 
     // set the distance of the goal cell to 0
-    maze->distances[maze->goalPos.y][maze->goalPos.x] = 0;
 
-    // push the goal cell into the queue
-    coord_queue.push(maze->goalPos);
+    for (int i = 0; i < sizeof(maze->goalPos) / sizeof(Coord); i++)
+    {
+        maze->distances[maze->goalPos[i].y][maze->goalPos[i].x] = 0;
+        // push the goal cell into the queue
+        coord_queue.push(maze->goalPos[i]);
+    }
 
     while(!coord_queue.empty())
     {
@@ -370,9 +377,25 @@ void Floodfill(Maze* maze)
     }
 }
 
+int finished(Maze* maze)
+{
+    for (int i = 0; i < sizeof(maze->goalPos) / sizeof(Coord); i++)
+    {
+        if (maze->goalPos[i].x == maze->mouse_pos.x && maze->goalPos[i].y == maze->mouse_pos.y)
+        {
+            return 1; // if mouse pos matches a goal cell's coordinates, finished
+        }
+    }
+
+    return 0; // if mouse pos did not match any goal cells, unfinished
+}
+
+// Global variable declarations for main
 Maze maze;
 
-int temp_value = 20;
+Coord goal_cells[4] = {(Coord){7, 7}, (Coord){7, 8}, (Coord){8, 8}, (Coord){8, 7}}; // goal cell coordinates in an array
+
+// int temp_value = 20; // probably from a lecture, not needed atm
 
 int main(int argc, char* argv[]) 
 {
@@ -383,7 +406,7 @@ int main(int argc, char* argv[])
     maze.distances[0][0] |= SOUTH_MASK;
     API::setWall(0, 0, 's');
 
-    setGoalCell(&maze, Xg, Yg);
+    setGoalCell(&maze, goal_cells);
 
     // 4. POINTER DEMO
     //pointer_demo(&temp_value);
@@ -398,7 +421,7 @@ int main(int argc, char* argv[])
     // }
     
 
-    while (!(maze.mouse_pos.x == maze.goalPos.x && maze.mouse_pos.y == maze.goalPos.y)) // run while the mouse position != goal position
+    while (!finished(&maze)) // run while the mouse position != goal position
     {
         cerr << "--------------------------------------------------------------------\n";
         cerr << "LOCATION: (" << maze.mouse_pos.x << ", " << maze.mouse_pos.y << ")\n";
