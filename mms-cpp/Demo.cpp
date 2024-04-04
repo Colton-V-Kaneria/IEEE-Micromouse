@@ -241,16 +241,20 @@ Cell getBestCell(CellList* cellList, Maze* maze)
 {
     Cell best_cell;
     Cell prospect;
-    int min_dist = 255;
+    int min_dist = MAX_COST;
     int x_new, y_new;
+
+    // Below is the only way we can check front, right, left, then behind in that order
+    // We will increase this increment and increase the index i by this to get the directions we want
+    int increment = 0;
 
     // debugging to fix getBestCell, we may need this again later
     // std::cerr << "getBestCell iteration" << std::endl;
     // std::cerr << "Loop\tBest Cell\tDistance" << std::endl; // header for table
 
-    for (int i = 0; i < cellList->size; i++)
+    for (int i = (int)maze->mouse_dir; increment < 4; i+=increment) // once the increment hits 3, we are looking at the behind cell and should stop afterwards
     {
-        prospect = cellList->cells[i];
+        prospect = cellList->cells[i%(cellList->size)];
 
         x_new = prospect.pos.x;
         y_new = prospect.pos.y;
@@ -260,6 +264,8 @@ Cell getBestCell(CellList* cellList, Maze* maze)
             best_cell = prospect;
             min_dist = maze->distances[y_new][x_new]; // we need to change the minimum distance if we find one smaller
         }
+
+        increment++;
 
         // debugging to fix getBestCell, we may need this again later
         // // these next statements create a row in the table for each iteration, showing the loop, best cell, and distance of best cell
