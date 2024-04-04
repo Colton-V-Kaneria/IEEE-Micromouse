@@ -345,4 +345,3 @@ void updateMousePos(Coord* pos, Direction dir){
             break;
     }
 }
-
