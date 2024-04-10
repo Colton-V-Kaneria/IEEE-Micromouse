@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include <queue>
+//#include <queue>
 
 #include "API.h"
 
@@ -248,10 +248,6 @@ Cell getBestCell(CellList* cellList, Maze* maze)
     // We will increase this increment and increase the index i by this to get the directions we want
     int increment = 0;
 
-    // debugging to fix getBestCell, we may need this again later
-    // std::cerr << "getBestCell iteration" << std::endl;
-    // std::cerr << "Loop\tBest Cell\tDistance" << std::endl; // header for table
-
     for (int i = (int)maze->mouse_dir; increment < 4; i+=increment) // once the increment hits 3, we are looking at the behind cell and should stop afterwards
     {
         prospect = cellList->cells[i%(cellList->size)];
@@ -266,10 +262,6 @@ Cell getBestCell(CellList* cellList, Maze* maze)
         }
 
         increment++;
-
-        // debugging to fix getBestCell, we may need this again later
-        // // these next statements create a row in the table for each iteration, showing the loop, best cell, and distance of best cell
-        // std::cerr << (i+1) << "\t(" << best_cell.pos.x << ", " << best_cell.pos.y << ")\t" << maze->distances[best_cell.pos.y][best_cell.pos.x] << std::endl;
     }
     return best_cell;
 }
@@ -311,27 +303,30 @@ void move(Maze* maze, Direction dest_dir)
     API::moveForward(); // move the mouse one space in the direction it is facing
 }
 
-void setGoalCell(Maze* maze, Coord goal_cells[4])
+void setGoalCells(Maze* maze, Coord goal_cells[4])
 {
     //maze->goalPos = goal_cells;
     memcpy(maze->goalPos, goal_cells, sizeof(maze->goalPos));
 }
 
-void showq(queue<Coord> gq)
-{
-    queue<Coord> g = gq;
-    cerr << "Current queue:\n";
-    while (!g.empty()) {
-        cerr << "\t(" << g.front().x << ", " << g.front().y << ")\n";
-        g.pop();
-    }
-    cerr << '\n';
-}
+// void showq(queue<Coord> gq)
+// {
+//     queue<Coord> g = gq;
+//     cerr << "Current queue:\n";
+//     while (!g.empty()) {
+//         cerr << "\t(" << g.front().x << ", " << g.front().y << ")\n";
+//         g.pop();
+//     }
+//     cerr << '\n';
+// }
 
 void Floodfill(Maze* maze)
 {
     //queue initialization
-    queue<Coord> coord_queue;
+    //queue<Coord> coord_queue;
+    
+    Coord queue[256];
+    unsigned char head, tail = 0;
     
     for (int x = 0; x < 16; x++)
     {
@@ -342,19 +337,21 @@ void Floodfill(Maze* maze)
     }
 
     // set the distance of the goal cell to 0
-
     for (int i = 0; i < sizeof(maze->goalPos) / sizeof(Coord); i++)
     {
         maze->distances[maze->goalPos[i].y][maze->goalPos[i].x] = 0;
         // push the goal cell into the queue
-        coord_queue.push(maze->goalPos[i]);
+        //coord_queue.push(maze->goalPos[i]);
+        queue[tail] = maze->goalPos[i];
+        tail++;
     }
 
-    while(!coord_queue.empty())
+    while(head != tail)
     {
-        Coord cur_pos = coord_queue.front();
-        
-        coord_queue.pop();
+        //Coord cur_pos = coord_queue.front();
+        Coord cur_pos = queue[head];
+        //coord_queue.pop();
+        head++;
         
         int newcost = maze->distances[cur_pos.y][cur_pos.x] + 1;
         
@@ -376,7 +373,9 @@ void Floodfill(Maze* maze)
                     new_coord.x = x;
                     new_coord.y = y;
                     
-                    coord_queue.push(new_coord);    // same as queue[tail] = cell, tail++
+                    //coord_queue.push(new_coord);
+                    queue[tail] = new_coord;
+                    tail++;
                 }
             }
         }
@@ -396,12 +395,41 @@ int finished(Maze* maze)
     return 0; // if mouse pos did not match any goal cells, unfinished
 }
 
+void traverseMaze(Maze* maze)
+{
+    while (!finished(maze)) // run while the mouse position != goal position
+    {
+        cerr << "--------------------------------------------------------------------\n";
+        cerr << "LOCATION: (" << maze->mouse_pos.x << ", " << maze->mouse_pos.y << ")\n";
+        
+        Floodfill(maze);
+        
+        scanWalls(maze);
+
+        CellList* adjacentCells = getNeighborCells(maze, maze->mouse_pos);
+
+        Cell best = getBestCell(adjacentCells, maze);      // initialize a cell to hold the result of getBestCell
+
+        std::cerr << "Best Cell: (" << best.pos.x << ", " << best.pos.y << ")" << std::endl; // print out best cell
+
+        free(adjacentCells->cells);
+        free(adjacentCells);
+
+        updateSimulator(*maze);
+
+        move(maze, best.dir); // move the mouse in the direction of the best cell
+    
+        // 3. UPDATE THIS WITH POINTERS updateMousePos
+        updateMousePos(&maze->mouse_pos, maze->mouse_dir);
+        cerr << "\n";
+    }
+}
+
 // Global variable declarations for main
 Maze maze;
 
 Coord goal_cells[4] = {(Coord){7, 7}, (Coord){7, 8}, (Coord){8, 8}, (Coord){8, 7}}; // goal cell coordinates in an array
-
-// int temp_value = 20; // probably from a lecture, not needed atm
+Coord start_array[4] = {(Coord){0, 0}};
 
 int main(int argc, char* argv[]) 
 {
@@ -412,74 +440,37 @@ int main(int argc, char* argv[])
     maze.distances[0][0] |= SOUTH_MASK;
     API::setWall(0, 0, 's');
 
-    setGoalCell(&maze, goal_cells);
+    // Exploration phase
+    setGoalCells(&maze, goal_cells);
+    traverseMaze(&maze);
 
-    // 4. POINTER DEMO
-    //pointer_demo(&temp_value);
-    //std::cerr << temp_value << std::endl;
+    // Return to start
+    setGoalCells(&maze, start_array);
+    traverseMaze(&maze);
 
-    // 1. FILL THIS IN
-    
-    // for(int x = 0; x < 16; x++) {
-    //     for(int y = 0; y < 16; y++) {
-    //         maze.distances[y][x] = x + y;
-    //     }
-    // }
-    
-
-    while (!finished(&maze)) // run while the mouse position != goal position
-    {
-        cerr << "--------------------------------------------------------------------\n";
-        cerr << "LOCATION: (" << maze.mouse_pos.x << ", " << maze.mouse_pos.y << ")\n";
-        
-        Floodfill(&maze);
-        
-        scanWalls(&maze);
-
-        CellList* adjacentCells = getNeighborCells(&maze, maze.mouse_pos);
-
-        // cerr << "NEIGHBOR CELLS\n";
-        // code to test getNeighborCells call, may need this again later
-        // for (int i = 0; i < adjacentCells->size; i++)
-        // {
-        //     std::cerr << "(" << adjacentCells->cells[i].pos.x << ", " << adjacentCells->cells[i].pos.y << ")\t blocked: " << adjacentCells->cells[i].blocked << std::endl;
-        // }
-
-        Cell best = getBestCell(adjacentCells, &maze);      // initialize a cell to hold the result of getBestCell
-
-        std::cerr << "Best Cell: (" << best.pos.x << ", " << best.pos.y << ")" << std::endl; // print out best cell
-
-        free(adjacentCells->cells);
-        free(adjacentCells);
-
-        updateSimulator(maze);
-
-        move(&maze, best.dir); // move the mouse in the direction of the best cell
-        
-        // Left Wall Follow Code
-        // if (!API::wallLeft()) 
-        // {
-        //     API::turnLeft();
-        //     maze.mouse_dir = (Direction)((maze.mouse_dir + 3) % 4);
-        // }
-        // while (API::wallFront()) 
-        // {
-        //     API::turnRight();
-        //     maze.mouse_dir = (Direction)((maze.mouse_dir + 1) % 4);
-        // }
-        // API::moveForward();
-    
-        // 3. UPDATE THIS WITH POINTERS updateMousePos
-        updateMousePos(&maze.mouse_pos, maze.mouse_dir);
-
-        cerr << "\n";
-
-        // 5. MOVE TO updateSimulator() + scanWalls() FUNCTION                                      (????????????????? I don't know about this)
-        // if (API::wallFront())
-        //     API::setWall(maze.mouse_pos.x, maze.mouse_pos.y, dir_chars[maze.mouse_dir]);
-        // if (API::wallRight())
-        //     API::setWall(maze.mouse_pos.x, maze.mouse_pos.y, dir_chars[(maze.mouse_dir + 1) % 4]);
-        // if (API::wallLeft())
-        //     API::setWall(maze.mouse_pos.x, maze.mouse_pos.y, dir_chars[(maze.mouse_dir + 3) % 4]);
-    }
+    // Use fastest path to reach center
+    setGoalCells(&maze, goal_cells);
+    traverseMaze(&maze);
 }
+
+
+// Left Wall Follow Code from Kyle
+// if (!API::wallLeft()) 
+// {
+//     API::turnLeft();
+//     maze.mouse_dir = (Direction)((maze.mouse_dir + 3) % 4);
+// }
+// while (API::wallFront()) 
+// {
+//     API::turnRight();
+//     maze.mouse_dir = (Direction)((maze.mouse_dir + 1) % 4);
+// }
+// API::moveForward();
+
+// 5. MOVE TO updateSimulator() + scanWalls() FUNCTION                                      (????????????????? I don't know about this)
+// if (API::wallFront())
+//     API::setWall(maze.mouse_pos.x, maze.mouse_pos.y, dir_chars[maze.mouse_dir]);
+// if (API::wallRight())
+//     API::setWall(maze.mouse_pos.x, maze.mouse_pos.y, dir_chars[(maze.mouse_dir + 1) % 4]);
+// if (API::wallLeft())
+//     API::setWall(maze.mouse_pos.x, maze.mouse_pos.y, dir_chars[(maze.mouse_dir + 3) % 4]);
