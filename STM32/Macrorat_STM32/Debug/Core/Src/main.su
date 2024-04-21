@@ -1,0 +1,16 @@
+../Core/Src/main.c:84:10:measure_dist	32	static
+../Core/Src/main.c:136:6:HAL_TIM_IC_CaptureCallback	16	static
+../Core/Src/main.c:152:6:motor_test	8	static
+../Core/Src/main.c:184:6:IR_test	8	static
+../Core/Src/main.c:197:5:main	8	static
+../Core/Src/main.c:265:6:SystemClock_Config	88	static
+../Core/Src/main.c:312:13:MX_ADC1_Init	24	static
+../Core/Src/main.c:359:13:MX_TIM2_Init	48	static
+../Core/Src/main.c:412:13:MX_TIM3_Init	56	static
+../Core/Src/main.c:461:13:MX_TIM4_Init	56	static
+../Core/Src/main.c:510:13:MX_GPIO_Init	40	static
+../Core/Src/main.c:549:13:ADC1_Select_CH4	24	static
+../Core/Src/main.c:561:13:ADC1_Select_CH5	24	static
+../Core/Src/main.c:573:13:ADC1_Select_CH8	24	static
+../Core/Src/main.c:585:13:ADC1_Select_CH9	24	static
+../Core/Src/main.c:602:6:Error_Handler	4	static,ignoring_inline_asm
