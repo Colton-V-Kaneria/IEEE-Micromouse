@@ -60,8 +60,8 @@ all: main-build
 main-build: Macrorat_STM32.elf secondary-outputs
 
 # Tool invocations
-Macrorat_STM32.elf Macrorat_STM32.map: $(OBJS) $(USER_OBJS) C:\Users\colton\Documents\GitHub\Macrorat\STM32\Macrorat_STM32\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Macrorat_STM32.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\colton\Documents\GitHub\Macrorat\STM32\Macrorat_STM32\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Macrorat_STM32.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Macrorat_STM32.elf Macrorat_STM32.map: $(OBJS) $(USER_OBJS) C:\Users\colton\Documents\GitHub\IEEE-Micromouse\STM32\Macrorat_STM32\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Macrorat_STM32.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\colton\Documents\GitHub\IEEE-Micromouse\STM32\Macrorat_STM32\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Macrorat_STM32.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

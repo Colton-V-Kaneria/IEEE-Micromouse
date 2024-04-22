@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <math.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -36,7 +37,8 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define diameter 33		// wheel diameter
+#define RW 41			// radius from center to wheel
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -58,6 +60,10 @@ uint16_t dis_L;
 uint16_t dis_R;
 int32_t enc_left = 0;
 int32_t enc_right = 0;
+int32_t d_L = 0;
+int32_t d_R = 0;
+int32_t d_center = 0;	// center distance
+int32_t angle = 0;
 uint16_t raw_count_left = 0;
 uint16_t raw_count_right = 0;
 uint16_t prev_count_left = 0;
@@ -133,18 +139,36 @@ uint16_t measure_dist(dist_t dist) {
 	return adc_val;
 }
 
+int calc_distance()
+{
+	return (d_L + d_R)/2;
+}
+
+int calc_angle()
+{
+	return (d_R - d_L)/(2.0 * RW) * (180.0/M_PI);
+}
+
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 	// this is the left encoder timer
 	if (htim->Instance == TIM3) {
 		//enc_left = __HAL_TIM_GET_COUNTER(htim);
 		raw_count_left = __HAL_TIM_GET_COUNTER(htim);
 		enc_left -= (int16_t)(raw_count_left - prev_count_left);
+		d_L = (enc_left / 360.0) * (M_PI * diameter);
+		d_center = calc_distance();
+		angle = calc_angle();
+
 		prev_count_left = raw_count_left;
 	}
 	if (htim->Instance == TIM4) {
 		//enc_right = __HAL_TIM_GET_COUNTER(htim);
 		raw_count_right = __HAL_TIM_GET_COUNTER(htim);
 		enc_right -= (int16_t)(raw_count_right - prev_count_right);
+		d_R = (enc_right / 360.0) * (M_PI * diameter);
+		d_center = calc_distance();
+		angle = calc_angle();
+
 		prev_count_right = raw_count_right;
 	}
 }
