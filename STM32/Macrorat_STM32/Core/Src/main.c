@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include <math.h>
+#include <stdlib.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -39,6 +40,7 @@ typedef enum {
 /* USER CODE BEGIN PD */
 #define diameter 33		// wheel diameter
 #define RW 41			// radius from center to wheel
+#define max_PWM 1600
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -68,6 +70,12 @@ uint16_t raw_count_left = 0;
 uint16_t raw_count_right = 0;
 uint16_t prev_count_left = 0;
 uint16_t prev_count_right = 0;
+int motorL = 0;
+int motorR = 0;
+
+const int base_PWM = 1300;
+const int K_rot = 5;
+// const int K_fwd = ?;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -146,7 +154,19 @@ int calc_distance()
 
 int calc_angle()
 {
-	return (d_R - d_L)/(2.0 * RW) * (180.0/M_PI);
+	int angle = (int)((d_R - d_L)/(2.0 * RW) * (180.0/M_PI)) % 360;
+
+	// These next statements ensure the result is between -180 and 180
+	if (angle > 180)
+	{
+		angle -= 360;
+	}
+	else if (angle < -180)
+	{
+		angle += 360;
+	}
+
+	return angle;
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
@@ -212,6 +232,17 @@ void IR_test()
 	dis_R = measure_dist(DIST_R);
 	dis_L = measure_dist(DIST_L);
 }
+
+int min(int a, int b)
+{
+	return (a < b) ? a : b;
+}
+
+
+int max(int a, int b)
+{
+	return (a > b) ? a : b;
+}
 /* USER CODE END 0 */
 
 /**
@@ -254,13 +285,15 @@ int main(void)
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_ALL);
 
-//  TIM2->CCR4 = 1350; // right motor
-//  TIM2->CCR3 = 1350; // left motor
-//
-//  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
-//  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-//  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
-//  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+//	HAL_Delay(5000); // 5 second delay until motors spin
+
+  TIM2->CCR4 = 1200; // right motor
+  TIM2->CCR3 = 1200; // left motor
+
+  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
+  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 
   /* USER CODE END 2 */
 
@@ -269,9 +302,23 @@ int main(void)
 
   while (1)
   {
-	  //motor_test();
-	  IR_test();
+//	  motorL = TIM2->CCR3;
+//	  motorR = TIM2->CCR4;
+//
+//	  angle = calc_angle();
+//
+//	  TIM2->CCR4 = base_PWM - K_rot * angle;
+//	  TIM2->CCR3 = base_PWM + K_rot * angle;
+//
+//	  // end the while loop if the motor speeds start to become erratic
+//	  if (motorL > 2000 || motorR > 2000 || motorL < 500 || motorR < 500)
+//	  {
+//		  TIM2->CCR4 = 0;
+//		  TIM2->CCR3 = 0;
+//		  break;
+//	  }
 
+	  IR_test();
 
     /* USER CODE END WHILE */
 
