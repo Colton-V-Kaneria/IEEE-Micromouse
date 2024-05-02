@@ -96,8 +96,13 @@ static void ADC1_Select_CH9(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 uint16_t measure_dist(dist_t dist) {
+<<<<<<< HEAD
 GPIO_TypeDef* emitter_port;
 uint16_t emitter_pin;
+=======
+	GPIO_TypeDef* emitter_port;
+	uint16_t emitter_pin;
+>>>>>>> Colton
 	GPIO_TypeDef* receiver_port;
 	uint16_t receiver_pin;
 
@@ -719,4 +724,8 @@ void assert_failed(uint8_t *file, uint32_t line)
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
+<<<<<<< HEAD
 #endif /* USE_FULL_ASSERT */
+=======
+#endif /* USE_FULL_ASSERT */
+>>>>>>> Colton
