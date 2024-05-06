@@ -103,12 +103,13 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     /**ADC1 GPIO Configuration
+    PA1     ------> ADC1_IN1
     PA4     ------> ADC1_IN4
     PA5     ------> ADC1_IN5
     PB0     ------> ADC1_IN8
     PB1     ------> ADC1_IN9
     */
-    GPIO_InitStruct.Pin = RECIV_FR_Pin|RECIV_R_Pin;
+    GPIO_InitStruct.Pin = V_METER_Pin|RECIV_FR_Pin|RECIV_R_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
@@ -140,12 +141,13 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
     __HAL_RCC_ADC1_CLK_DISABLE();
 
     /**ADC1 GPIO Configuration
+    PA1     ------> ADC1_IN1
     PA4     ------> ADC1_IN4
     PA5     ------> ADC1_IN5
     PB0     ------> ADC1_IN8
     PB1     ------> ADC1_IN9
     */
-    HAL_GPIO_DeInit(GPIOA, RECIV_FR_Pin|RECIV_R_Pin);
+    HAL_GPIO_DeInit(GPIOA, V_METER_Pin|RECIV_FR_Pin|RECIV_R_Pin);
 
     HAL_GPIO_DeInit(GPIOB, RECIV_L_Pin|RECIV_FL_Pin);
 

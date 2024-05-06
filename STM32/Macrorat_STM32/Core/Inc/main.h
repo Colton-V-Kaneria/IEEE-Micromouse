@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define V_METER_Pin GPIO_PIN_1
+#define V_METER_GPIO_Port GPIOA
 #define MR_PWM_Pin GPIO_PIN_2
 #define MR_PWM_GPIO_Port GPIOA
 #define ML_PWM_Pin GPIO_PIN_3
