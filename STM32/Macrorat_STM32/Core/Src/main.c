@@ -18,12 +18,10 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <math.h>
-#include <stdlib.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,6 +39,7 @@ typedef enum {
 #define diameter 33		// wheel diameter
 #define RW 41			// radius from center to wheel
 #define max_PWM 1600
+#define v_ratio 1/1206.0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -73,8 +72,14 @@ uint16_t prev_count_right = 0;
 int motorL = 0;
 int motorR = 0;
 
-const int base_PWM = 1300;
-const int K_rot = 5;
+const float min_v = 4.45;
+int initial_PWM = 0;
+float v_motor = 2.5;
+int motor_PWM = 0;
+
+uint16_t battery_reading = 0;
+float v_batt = 0;
+
 // const int K_fwd = ?;
 /* USER CODE END PV */
 
@@ -85,8 +90,8 @@ static void MX_TIM2_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
-
 /* USER CODE BEGIN PFP */
+static void ADC1_Select_CH1(void);
 static void ADC1_Select_CH4(void);
 static void ADC1_Select_CH5(void);
 static void ADC1_Select_CH8(void);
@@ -147,6 +152,30 @@ uint16_t measure_dist(dist_t dist) {
 	return adc_val;
 }
 
+float calc_v_batt()
+{
+	ADC1_Select_CH1();
+
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	battery_reading = HAL_ADC_GetValue(&hadc1);
+	HAL_ADC_Stop(&hadc1);
+
+	// multiply by ratio to convert to V, then multiply by 3
+    return battery_reading * v_ratio * 3;
+    //return adc_val;//battery scale = 1206
+//	v_meter = measure_battery(BATTERY);
+//	fl_v_meter = (float)(v_meter)/1206;
+//	fl_batt_volt = (float)(v_meter*3)/1206;
+    //batt volt obtained through voltage division
+
+}
+
+int calc_PWM(float voltage)
+{
+	return (voltage/v_batt)*2047;
+}
+
 int calc_distance()
 {
 	return (d_L + d_R)/2;
@@ -176,7 +205,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 		raw_count_left = __HAL_TIM_GET_COUNTER(htim);
 		enc_left -= (int16_t)(raw_count_left - prev_count_left);
 		d_L = (enc_left / 360.0) * (M_PI * diameter);
-		d_center = calc_distance();
+		d_center = calc_distance();	// updates distance whenever d_L changes
 		angle = calc_angle();
 
 		prev_count_left = raw_count_left;
@@ -223,6 +252,16 @@ void motor_test()
 	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 	HAL_Delay(1500);
+}
+
+void left_motor_test()
+{
+	TIM2->CCR3 = 1350; // left motor
+
+	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
+	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
+	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 }
 
 void IR_test()
@@ -287,12 +326,30 @@ int main(void)
 
 //	HAL_Delay(5000); // 5 second delay until motors spin
 
-  TIM2->CCR4 = 1200; // right motor
-  TIM2->CCR3 = 1200; // left motor
+  v_batt = calc_v_batt();		// variables for live expressions
+  initial_PWM = calc_PWM(min_v); // calculate PWM needed to set motors in motion
 
-  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
+  TIM2->CCR4 = initial_PWM; // right motor
+  TIM2->CCR3 = initial_PWM; // left motor
+
+  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);	// spin both motors forward
   HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
   HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+  HAL_Delay(35);
+
+  v_batt = calc_v_batt();		// variables for live expressions
+  motor_PWM = calc_PWM(v_motor);
+
+  TIM2->CCR4 = motor_PWM;
+  TIM2->CCR3 = motor_PWM;
+
+  HAL_Delay(60000);
+
+  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);	// stop both motors
+  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
   HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 
   /* USER CODE END 2 */
@@ -318,7 +375,6 @@ int main(void)
 //		  break;
 //	  }
 
-	  IR_test();
 
     /* USER CODE END WHILE */
 
@@ -617,6 +673,18 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+static void ADC1_Select_CH1(void) {
+	ADC_ChannelConfTypeDef sConfig = {0};
+
+	sConfig.Channel = ADC_CHANNEL_1;
+	sConfig.Rank = ADC_REGULAR_RANK_1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_7CYCLES_5;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+}
+
 static void ADC1_Select_CH4(void) {
 	ADC_ChannelConfTypeDef sConfig = {0};
 

@@ -248,7 +248,8 @@ Cell getBestCell(CellList* cellList, Maze* maze)
     // We will increase this increment and increase the index i by this to get the directions we want
     int increment = 0;
 
-    for (int i = (int)maze->mouse_dir; increment < 4; i+=increment) // once the increment hits 3, we are looking at the behind cell and should stop afterwards
+    // once the increment hits 3, we are looking at the behind cell and should stop afterwards
+    for (int i = (int)maze->mouse_dir; increment < 4; i+=increment)
     {
         prospect = cellList->cells[i%(cellList->size)];
 
@@ -258,7 +259,8 @@ Cell getBestCell(CellList* cellList, Maze* maze)
         if (maze->distances[y_new][x_new] < min_dist && !prospect.blocked)
         {
             best_cell = prospect;
-            min_dist = maze->distances[y_new][x_new]; // we need to change the minimum distance if we find one smaller
+            // we need to change the minimum distance if we find one smaller
+            min_dist = maze->distances[y_new][x_new];
         }
 
         increment++;
