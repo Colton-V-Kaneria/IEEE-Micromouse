@@ -277,6 +277,55 @@ void IR_test()
 	dis_L = measure_dist(DIST_L);
 }
 
+void Center_Adjustment(void){
+  uint32_t enc_left = 0; 
+  uint32_t enc_right = 0; 
+  enc_left = measure_dist(DIST_L);
+  enc_right = measure_dist(DIST_R);
+  if(enc_left > enc_right){
+    //turn right
+    TIM2->CCR4 = 1350; // right motor
+    TIM2->CCR3 = 1350; // left motor
+
+    HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
+    HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+    HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
+    HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+    HAL_Delay(1500);
+
+    HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
+    HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+    HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
+    HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+    HAL_Delay(1500);
+    }
+  if(enc_left < enc_right){
+    //turn left
+    TIM2->CCR4 = 1350; // right motor
+    TIM2->CCR3 = 1350; // left motor
+
+    HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
+    HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+    HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+    HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+    HAL_Delay(1500);
+
+    HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
+    HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+    HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
+    HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+    HAL_Delay(1500);
+  }
+  if (enc_left == enc_right){
+    //do nothing
+  }
+    return 0;
+}
+
 int min(int a, int b)
 {
 	return (a < b) ? a : b;
