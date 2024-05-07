@@ -39,7 +39,9 @@ typedef enum {
 #define diameter 33		// wheel diameter
 #define RW 41			// radius from center to wheel
 #define max_PWM 1600
-#define v_ratio 1/1206.0
+#define v_ratio 0.0008172
+#define min_v 4.5
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -72,13 +74,13 @@ uint16_t prev_count_right = 0;
 int motorL = 0;
 int motorR = 0;
 
-const float min_v = 4.45;
 int initial_PWM = 0;
-float v_motor = 2.5;
+float v_motor = 8;
 int motor_PWM = 0;
 
 uint16_t battery_reading = 0;
 float v_batt = 0;
+float initial_v_batt = 0;
 
 // const int K_fwd = ?;
 /* USER CODE END PV */
@@ -327,6 +329,7 @@ int main(void)
 //	HAL_Delay(5000); // 5 second delay until motors spin
 
   v_batt = calc_v_batt();		// variables for live expressions
+  initial_v_batt = v_batt;
   initial_PWM = calc_PWM(min_v); // calculate PWM needed to set motors in motion
 
   TIM2->CCR4 = initial_PWM; // right motor
@@ -337,7 +340,7 @@ int main(void)
   HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
   HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 
-  HAL_Delay(35);
+  HAL_Delay(50);
 
   v_batt = calc_v_batt();		// variables for live expressions
   motor_PWM = calc_PWM(v_motor);
@@ -359,21 +362,6 @@ int main(void)
 
   while (1)
   {
-//	  motorL = TIM2->CCR3;
-//	  motorR = TIM2->CCR4;
-//
-//	  angle = calc_angle();
-//
-//	  TIM2->CCR4 = base_PWM - K_rot * angle;
-//	  TIM2->CCR3 = base_PWM + K_rot * angle;
-//
-//	  // end the while loop if the motor speeds start to become erratic
-//	  if (motorL > 2000 || motorR > 2000 || motorL < 500 || motorR < 500)
-//	  {
-//		  TIM2->CCR4 = 0;
-//		  TIM2->CCR3 = 0;
-//		  break;
-//	  }
 
 
     /* USER CODE END WHILE */
