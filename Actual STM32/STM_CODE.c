@@ -40,6 +40,9 @@ typedef enum {
 
 #define diameter 33		// wheel diameter
 #define RW 41
+#define max_PWM 1600
+#define v_ratio 1/1206.0
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -71,15 +74,15 @@ const uint16_t cali_R = 1206; //1590 //1688 //1600// 1683
 const uint16_t cali_FL = 2964; //  AVG: 3029
 const uint16_t cali_FR = 3367; // AVG: 3407
 
-const uint16_t nominal_L ;
-const uint16_t nominal_R ;
-const uint16_t nominal_FL ;
-const uint16_t nominal_FR ;
+const uint16_t nominal_L = 100;
+const uint16_t nominal_R = 100;
+const uint16_t nominal_FL = 200;
+const uint16_t nominal_FR = 200;
 
-//float left_scale = (float)nominal_L / cali_L;
-//float right_scale = (float)nominal_R / cali_R;
-//float front_left_scale = (float)nominal_FL / cali_FL;
-//float front_right_scale = (float)nominal_FR / cali_FR;
+float left_scale = (float)nominal_L / cali_L;
+float right_scale = (float)nominal_R / cali_R;
+float front_left_scale = (float)nominal_FL / cali_FL;
+float front_right_scale = (float)nominal_FR / cali_FR;
 
 //Encoders
 int32_t enc_left = 0;
@@ -97,10 +100,23 @@ int32_t angle = 0;
 int32_t exp_dist = 0;
 int32_t measured_dist_L = 0;
 
-uint16_t v_meter;
-uint16_t batt_volt;
-volatile float fl_batt_volt;
-volatile float fl_v_meter;
+float duty_cycle;
+
+int motorL = 0;
+int motorR = 0;
+
+const int base_PWM = 1300;
+const int K_rot = 5;
+
+const float min_v = 4.45;
+int initial_PWM = 0;
+float v_motor = 2.5;
+int motor_PWM = 0;
+
+uint16_t battery_reading = 0;
+float v_batt = 0;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -174,27 +190,24 @@ uint16_t measure_dist(dist_t dist) {
 }
 
 
-uint16_t measure_battery(batt_t batt)
+float calc_v_batt()
 {
-	GPIO_TypeDef* battery_port;
-	uint16_t battery_pin;
-
-	battery_port = V_Meter_GPIO_Port;
-	battery_pin = V_Meter_Pin;
 	ADC1_Select_CH1();
-
-	HAL_GPIO_WritePin(battery_port, battery_pin, GPIO_PIN_SET);
-	HAL_Delay(5);
 
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	uint16_t adc_val = HAL_ADC_GetValue(&hadc1);
+	battery_reading = HAL_ADC_GetValue(&hadc1);
 	HAL_ADC_Stop(&hadc1);
 
-	HAL_GPIO_WritePin(battery_port, battery_pin, GPIO_PIN_RESET);
+	// multiply by ratio to convert to V, then multiply by 3
+    return battery_reading * v_ratio * 3;
 
-	return adc_val;
+}
 
+
+int calc_PWM(float voltage)
+{
+	return (voltage/v_batt)*2047;
 }
 
 int calc_distance()
@@ -204,13 +217,24 @@ int calc_distance()
 
 int calc_angle()
 {
-	return (d_R - d_L)/(2.0 * RW) * (180.0/M_PI);
+	int angle = (int)((d_R - d_L)/(2.0 * RW) * (180.0/M_PI)) % 360;
+
+	// These next statements ensure the result is between -180 and 180
+	if (angle > 180)
+	{
+		angle -= 360;
+	}
+	else if (angle < -180)
+	{
+		angle += 360;
+	}
+
+	return angle;
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     // this is the left encoder timer
     if (htim->Instance == TIM3) {
-        //enc_left = HAL_TIM_GET_COUNTER(htim);
         raw_count_left = __HAL_TIM_GET_COUNTER(htim);
         enc_left -= (int16_t)(raw_count_left - prev_count_left);
 		d_L = (enc_left / 360.0) * (M_PI * diameter);
@@ -220,7 +244,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 
     }
     if (htim->Instance == TIM4) {
-        //enc_right = HAL_TIM_GET_COUNTER(htim);
         raw_count_right = __HAL_TIM_GET_COUNTER(htim);
         enc_right -= (int16_t)(raw_count_right - prev_count_right);
 		d_R = (enc_right / 360.0) * (M_PI * diameter);
@@ -235,13 +258,22 @@ void motor_test()
 {
 
 
-	TIM2->CCR4 = 1350; // right motor
-	TIM2->CCR3 = 1350; // left motor
+	TIM2->CCR4 = motor_PWM; // right motor
+	TIM2->CCR3 = motor_PWM; // left motor
+
+
 
 	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
 	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
 	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+	HAL_Delay(100000);
+
+	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
+	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
+	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+	HAL_Delay(10000000);
 
 }
 
@@ -253,32 +285,33 @@ void IR_test()
 	dis_L = measure_dist(DIST_L);
 }
 
-void battery_voltage_value()
+
+int FWD_Controller() //Perhaps add encoder tick value )
 {
-    //battery scale = 1206 
-	v_meter = measure_battery(BATTERY);
-	fl_v_meter = (float)(v_meter)/1206;
-	fl_batt_volt = (float)(v_meter*3)/1206; 
-    //batt volt obtained through voltage division
+
+
+	float error;
+	float espect_dist = 180;
+	int32_t Kp = 2;
+
+	error = espect_dist - d_center;
+
+	float fwd_output_voltage = error*Kp;
+
+	return fwd_output_voltage;
 
 }
 
-// int FWD_Controller() //Perhaps add encoder tick value )
-// {
+int min(int a, int b)
+{
+	return (a < b) ? a : b;
+}
 
 
-// 	int32_t error;
-// 	int32_t act_dist = 20;
-// 	int32_t espect_dist = 180;
-// 	int32_t Kp = 2;
-
-// 	error = espect_dist - act_dist;
-
-// 	int32_t fwd_output_voltage = error*Kp;
-
-// 	return fwd_output_voltage;
-
-// }
+int max(int a, int b)
+{
+	return (a > b) ? a : b;
+}
 
 
 /* USER CODE END 0 */
@@ -323,10 +356,28 @@ int main(void)
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_ALL);
 
-  TIM2->CCR4 = 1350; // right motor
-  TIM2->CCR3 = 1350; // left motor
+  v_batt = calc_v_batt();		// variables for live expressions
+  initial_PWM = calc_PWM(min_v); // calculate PWM needed to set motors in motion
 
-  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
+  TIM2->CCR4 = initial_PWM; // right motor
+  TIM2->CCR3 = initial_PWM; // left motor
+
+  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);	// spin both motors forward
+  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+  HAL_Delay(35);
+
+  v_batt = calc_v_batt();		// variables for live expressions
+  motor_PWM = calc_PWM(v_motor);
+
+  TIM2->CCR4 = motor_PWM;
+  TIM2->CCR3 = motor_PWM;
+
+  HAL_Delay(60000);
+
+  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);	// stop both motors
   HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
   HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
   HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
@@ -343,9 +394,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  IR_test();
-	  motor_test();
-	  battery_voltage_value();
+	 // IR_test();
+	  //motor_voltage_value();
+	 // motor_test();
+
 
   }
   /* USER CODE END 3 */
