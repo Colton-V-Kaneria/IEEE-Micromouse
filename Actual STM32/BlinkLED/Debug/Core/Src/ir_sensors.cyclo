@@ -1,0 +1,6 @@
+../Core/Src/ir_sensors.c:36:10:measure_dist	5
+../Core/Src/ir_sensors.c:89:6:IR_test	1
+../Core/Src/ir_sensors.c:99:6:ADC1_Select_CH4	2
+../Core/Src/ir_sensors.c:111:6:ADC1_Select_CH5	2
+../Core/Src/ir_sensors.c:123:6:ADC1_Select_CH8	2
+../Core/Src/ir_sensors.c:135:6:ADC1_Select_CH9	2
