@@ -1,6 +1,0 @@
-../Core/Src/ir_sensors.c:36:10:measure_dist	32	static
-../Core/Src/ir_sensors.c:89:6:IR_test	8	static
-../Core/Src/ir_sensors.c:99:6:ADC1_Select_CH4	24	static
-../Core/Src/ir_sensors.c:111:6:ADC1_Select_CH5	24	static
-../Core/Src/ir_sensors.c:123:6:ADC1_Select_CH8	24	static
-../Core/Src/ir_sensors.c:135:6:ADC1_Select_CH9	24	static

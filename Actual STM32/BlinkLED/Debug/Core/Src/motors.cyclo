@@ -1,6 +1,0 @@
-../Core/Src/motors.c:34:5:calc_PWM	1
-../Core/Src/motors.c:39:5:calc_distance	1
-../Core/Src/motors.c:44:5:calc_angle	3
-../Core/Src/motors.c:61:6:HAL_TIM_IC_CaptureCallback	3
-../Core/Src/motors.c:83:7:calc_v_batt	1
-../Core/Src/motors.c:98:6:motor_test	1
