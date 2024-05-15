@@ -52,7 +52,6 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
-
 int32_t exp_dist = 0;
 int32_t measured_dist_L = 0;
 

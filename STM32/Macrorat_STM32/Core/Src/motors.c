@@ -28,7 +28,7 @@ uint16_t battery_reading = 0;
 
 const float min_v = 2.5;
 int initial_PWM = 0;
-float v_motor = 4;
+int v_motor = 4;
 int motor_PWM = 0;
 
 int calc_PWM(float voltage)
