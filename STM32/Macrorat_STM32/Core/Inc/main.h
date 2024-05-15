@@ -36,7 +36,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+extern ADC_HandleTypeDef hadc1;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -59,8 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define V_METER_Pin GPIO_PIN_1
-#define V_METER_GPIO_Port GPIOA
+#define V_Meter_Pin GPIO_PIN_1
+#define V_Meter_GPIO_Port GPIOA
 #define MR_PWM_Pin GPIO_PIN_2
 #define MR_PWM_GPIO_Port GPIOA
 #define ML_PWM_Pin GPIO_PIN_3
