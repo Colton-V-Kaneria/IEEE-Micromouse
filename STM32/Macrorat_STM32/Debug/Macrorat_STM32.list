@@ -39,9 +39,9 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  17 .debug_macro  0001828f  00000000  00000000  0002dcc6  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_line   0000cb81  00000000  00000000  00045f55  2**0
+ 18 .debug_line   0000cb82  00000000  00000000  00045f55  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    0008d630  00000000  00000000  00052ad6  2**0
+ 19 .debug_str    0008d630  00000000  00000000  00052ad7  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  20 .debug_frame  00002fa0  00000000  00000000  000e0108  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
@@ -1285,14 +1285,16 @@ int main(void)
  8000f22:	213c      	movs	r1, #60	; 0x3c
  8000f24:	4804      	ldr	r0, [pc, #16]	; (8000f38 <main+0x54>)
  8000f26:	f002 fcb5 	bl	8003894 <HAL_TIM_Encoder_Start_IT>
-    /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-	 // IR_test();
-	  //motor_voltage_value();
-	 motor_test();
+  motor_test();
  8000f2a:	f000 fb9b 	bl	8001664 <motor_test>
- 8000f2e:	e7fc      	b.n	8000f2a <main+0x46>
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+
+  while (1)
+ 8000f2e:	e7fe      	b.n	8000f2e <main+0x4a>
  8000f30:	2000005c 	.word	0x2000005c
  8000f34:	200000a4 	.word	0x200000a4
  8000f38:	200000ec 	.word	0x200000ec
@@ -2537,8 +2539,8 @@ void motor_test()
  80016fa:	f04f 4380 	mov.w	r3, #1073741824	; 0x40000000
  80016fe:	63da      	str	r2, [r3, #60]	; 0x3c
 
-	  HAL_Delay(60000);
- 8001700:	f64e 2060 	movw	r0, #60000	; 0xea60
+	  HAL_Delay(10000);
+ 8001700:	f242 7010 	movw	r0, #10000	; 0x2710
  8001704:	f000 fa52 	bl	8001bac <HAL_Delay>
 
 	  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);	// stop both motors

@@ -150,6 +150,7 @@ int main(void)
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_ALL);
 
+  motor_test();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -164,7 +165,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	 // IR_test();
 	  //motor_voltage_value();
-	 motor_test();
+
 
 
   }

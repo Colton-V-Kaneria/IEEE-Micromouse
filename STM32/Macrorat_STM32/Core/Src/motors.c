@@ -117,7 +117,7 @@ void motor_test()
 	  TIM2->CCR4 = motor_PWM;
 	  TIM2->CCR3 = motor_PWM;
 
-	  HAL_Delay(60000);
+	  HAL_Delay(10000);
 
 	  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);	// stop both motors
 	  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
