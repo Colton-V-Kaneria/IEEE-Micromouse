@@ -25,7 +25,7 @@
 #include <math.h>
 #include "ir_sensors.h"
 #include "motors.h"
-
+#include "controllers.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -78,23 +78,6 @@ static void MX_TIM4_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-//
-//
-//int FWD_Controller() //Perhaps add encoder tick value )
-//{
-//
-//
-//	float error;
-//	float espect_dist = 180;
-//	int32_t Kp = 2;
-//
-//	error = espect_dist - d_center;
-//
-//	float fwd_output_voltage = error*Kp;
-//
-//	return fwd_output_voltage;
-//
-//}
 
 int min(int a, int b)
 {
@@ -300,13 +283,14 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 1024;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
   }
+  sConfigOC.Pulse = 0;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
