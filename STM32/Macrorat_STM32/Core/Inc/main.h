@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define V_METER_Pin GPIO_PIN_1
+#define V_METER_GPIO_Port GPIOA
 #define MR_PWM_Pin GPIO_PIN_2
 #define MR_PWM_GPIO_Port GPIOA
 #define ML_PWM_Pin GPIO_PIN_3
@@ -95,6 +97,8 @@ void Error_Handler(void);
 #define MR_ENC_B_GPIO_Port GPIOB
 #define MR_ENC_A_Pin GPIO_PIN_7
 #define MR_ENC_A_GPIO_Port GPIOB
+#define BUZZER_Pin GPIO_PIN_8
+#define BUZZER_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

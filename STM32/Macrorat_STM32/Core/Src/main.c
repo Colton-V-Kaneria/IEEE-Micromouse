@@ -18,21 +18,20 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <math.h>
-#include <stdlib.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <math.h>
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 typedef enum {
-	DIST_FL,
-	DIST_FR,
-	DIST_R,
-	DIST_L
+	FL,
+	L,
+	R,
+	FR
 } dist_t;
 /* USER CODE END PTD */
 
@@ -40,7 +39,14 @@ typedef enum {
 /* USER CODE BEGIN PD */
 #define diameter 33		// wheel diameter
 #define RW 41			// radius from center to wheel
-#define max_PWM 1600
+#define v_ratio 0.0008172
+#define max_v_batt 8.10
+#define kickstart_v 0.0
+
+#define K_fwd 0.3
+
+#define loop_period 1
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -56,15 +62,24 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
-uint16_t dis_FL;
-uint16_t dis_FR;
-uint16_t dis_L;
-uint16_t dis_R;
+uint16_t IR_dists[4] = {0};
+//uint16_t dis_FL;
+//uint16_t dis_FR;
+//uint16_t dis_L;
+//uint16_t dis_R;
+
+uint16_t IR_data[4][15] = {{0}};
+uint16_t wall_standard[4] = {2927, 1210, 1210, 2962};
+uint16_t wall_nominal[4] = {200, 100, 100, 200};
+
 int32_t enc_left = 0;
 int32_t enc_right = 0;
 int32_t d_L = 0;
 int32_t d_R = 0;
 int32_t d_center = 0;	// center distance
+int32_t prev_d_center = 0;
+int32_t fwd_error = 0;
+
 int32_t angle = 0;
 uint16_t raw_count_left = 0;
 uint16_t raw_count_right = 0;
@@ -73,8 +88,17 @@ uint16_t prev_count_right = 0;
 int motorL = 0;
 int motorR = 0;
 
-const int base_PWM = 1300;
-const int K_rot = 5;
+float base_v_motor = 1;
+int motor_PWM = 0;
+float x = 1;
+
+uint16_t battery_reading = 0;
+float v_batt = 0;
+float initial_v_batt = 0;
+
+float intended_speed = 180;
+int time_count = 0;
+
 // const int K_fwd = ?;
 /* USER CODE END PV */
 
@@ -85,8 +109,8 @@ static void MX_TIM2_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
-
 /* USER CODE BEGIN PFP */
+static void ADC1_Select_CH1(void);
 static void ADC1_Select_CH4(void);
 static void ADC1_Select_CH5(void);
 static void ADC1_Select_CH8(void);
@@ -102,28 +126,28 @@ uint16_t measure_dist(dist_t dist) {
 	uint16_t receiver_pin;
 
 	switch(dist) {
-		case DIST_FL:
+		case FL:
 			emitter_port = EMIT_FL_GPIO_Port;
 			emitter_pin = EMIT_FL_Pin;
 			receiver_port = RECIV_FL_GPIO_Port;
 			receiver_pin = RECIV_FL_Pin;
 			ADC1_Select_CH9();
 			break;
-		case DIST_L:
+		case L:
 			emitter_port = EMIT_L_GPIO_Port;
 			emitter_pin = EMIT_L_Pin;
 			receiver_port = RECIV_L_GPIO_Port;
 			receiver_pin = RECIV_L_Pin;
 			ADC1_Select_CH8();
 			break;
-		case DIST_R:
+		case R:
 			emitter_port = EMIT_R_GPIO_Port;
 			emitter_pin = EMIT_R_Pin;
 			receiver_port = RECIV_R_GPIO_Port;
 			receiver_pin = RECIV_R_Pin;
 			ADC1_Select_CH5();
 			break;
-		case DIST_FR:
+		case FR:
 			emitter_port = EMIT_FR_GPIO_Port;
 			emitter_pin = EMIT_FR_Pin;
 			receiver_port = RECIV_FR_GPIO_Port;
@@ -145,6 +169,50 @@ uint16_t measure_dist(dist_t dist) {
 	HAL_GPIO_WritePin(emitter_port, emitter_pin, GPIO_PIN_RESET);
 
 	return adc_val;
+}
+
+uint16_t average_dist(dist_t sensor)	// dist tells us which sensor's distance we are measuring
+{
+	static int IR_index = 0;
+
+	IR_data[sensor][IR_index] = measure_dist(sensor); // puts newest distance into array
+
+	int sum = 0;
+
+	for (int i = 0; i < 15; i++)
+	{
+		sum += IR_data[sensor][i];
+	}
+
+	IR_index = (IR_index + 1) % 15;
+
+	return sum / 15;
+}
+
+float calc_v_batt()
+{
+	ADC1_Select_CH1();
+
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	battery_reading = HAL_ADC_GetValue(&hadc1);
+	HAL_ADC_Stop(&hadc1);
+
+	// multiply by ratio to convert to V, then multiply by 3
+    return battery_reading * v_ratio * 3;
+    //return adc_val;//battery scale = 1206
+//	v_meter = measure_battery(BATTERY);
+//	fl_v_meter = (float)(v_meter)/1206;
+//	fl_batt_volt = (float)(v_meter*3)/1206;
+    //batt volt obtained through voltage division
+
+}
+
+int calc_PWM(float voltage)
+{
+	v_batt = calc_v_batt();
+	x = voltage;
+	return (voltage/v_batt)*2047;
 }
 
 int calc_distance()
@@ -176,7 +244,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 		raw_count_left = __HAL_TIM_GET_COUNTER(htim);
 		enc_left -= (int16_t)(raw_count_left - prev_count_left);
 		d_L = (enc_left / 360.0) * (M_PI * diameter);
-		d_center = calc_distance();
+		d_center = calc_distance();	// updates distance whenever d_L changes
 		angle = calc_angle();
 
 		prev_count_left = raw_count_left;
@@ -193,44 +261,44 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-void motor_test()
+void IR_test()
 {
-	//HAL_TIM_IC_CaptureCallback(&htim2);
+	for (dist_t sensor = FL; sensor != FR; sensor++)	// iterates through all sensors left to right
+	{
+		IR_dists[sensor] = average_dist(sensor);
+	}
 
-	TIM2->CCR4 = 1350; // right motor
-	TIM2->CCR3 = 1350; // left motor
+//	dis_FR = average_dist(FR);
+//	dis_FL = average_dist(FL);
+//	dis_R = average_dist(R);
+//	dis_L = average_dist(L);
+}
+
+
+int min(int a, int b)
+{
+	return (a < b) ? a : b;
+}
+
+
+int max(int a, int b)
+{
+	return (a > b) ? a : b;
+}
+
+void kickstart_motors()
+{
+	motor_PWM = calc_PWM(kickstart_v);
+
+	TIM2->CCR4 = motor_PWM;
+	TIM2->CCR3 = motor_PWM;
 
 	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
 	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
 	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-	HAL_Delay(1500);
 
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-	HAL_Delay(1500);
-
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 1);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 1);
-	HAL_Delay(1500);
-
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-	HAL_Delay(1500);
-}
-
-void IR_test()
-{
-	dis_FR = measure_dist(DIST_FR);
-	dis_FL = measure_dist(DIST_FL);
-	dis_R = measure_dist(DIST_R);
-	dis_L = measure_dist(DIST_L);
+	HAL_Delay(50);
 }
 
 int min(int a, int b)
@@ -252,7 +320,6 @@ int max(int a, int b)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -278,22 +345,28 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-  //HAL_TIM_Base_Start_IT(&htim2);
+  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
+
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
 
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_ALL);
 
-//	HAL_Delay(5000); // 5 second delay until motors spin
+  HAL_Delay(10000);
+  //kickstart_motors();
 
-  TIM2->CCR4 = 1200; // right motor
-  TIM2->CCR3 = 1200; // left motor
+  motor_PWM = calc_PWM(base_v_motor);
 
   HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
   HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
   HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
   HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+  TIM2->CCR4 = motor_PWM;
+  TIM2->CCR3 = motor_PWM;
+
+  // motors are already spinning from being kickstarted
 
   /* USER CODE END 2 */
 
@@ -302,24 +375,13 @@ int main(void)
 
   while (1)
   {
-//	  motorL = TIM2->CCR3;
-//	  motorR = TIM2->CCR4;
-//
-//	  angle = calc_angle();
-//
-//	  TIM2->CCR4 = base_PWM - K_rot * angle;
-//	  TIM2->CCR3 = base_PWM + K_rot * angle;
-//
-//	  // end the while loop if the motor speeds start to become erratic
-//	  if (motorL > 2000 || motorR > 2000 || motorL < 500 || motorR < 500)
-//	  {
-//		  TIM2->CCR4 = 0;
-//		  TIM2->CCR3 = 0;
-//		  break;
-//	  }
-
-	  IR_test();
-
+	 if (d_center >= 1000)
+	 {
+		HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
+		HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+		HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
+		HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+	 }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -434,6 +496,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -441,11 +504,20 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
+  htim2.Init.Prescaler = 72;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 2047;
+  htim2.Init.Period = 1000;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
@@ -457,7 +529,7 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 1024;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
@@ -591,15 +663,15 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_BWD_Pin
-                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin, GPIO_PIN_RESET);
+                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin|BUZZER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : EMIT_R_Pin EMIT_L_Pin EMIT_FL_Pin MR_BWD_Pin
-                           ML_BWD_Pin MR_FWD_Pin EMIT_FR_Pin */
+                           ML_BWD_Pin MR_FWD_Pin EMIT_FR_Pin BUZZER_Pin */
   GPIO_InitStruct.Pin = EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_BWD_Pin
-                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin;
+                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin|BUZZER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -617,6 +689,30 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+int _write(int file, char *ptr, int len)
+{
+  (void)file;
+  int DataIdx;
+
+  for (DataIdx = 0; DataIdx < len; DataIdx++)
+  {
+    ITM_SendChar(*ptr++);
+  }
+  return len;
+}
+
+static void ADC1_Select_CH1(void) {
+	ADC_ChannelConfTypeDef sConfig = {0};
+
+	sConfig.Channel = ADC_CHANNEL_1;
+	sConfig.Rank = ADC_REGULAR_RANK_1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_7CYCLES_5;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+}
+
 static void ADC1_Select_CH4(void) {
 	ADC_ChannelConfTypeDef sConfig = {0};
 
@@ -663,6 +759,27 @@ static void ADC1_Select_CH9(void) {
 	{
 		Error_Handler();
 	}
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
+	if (time_count % 1000 == 0)
+	{
+//		int fwd_movement = d_center - prev_d_center;
+//
+//		// find the difference between intended speed and actual speed
+//		fwd_error = intended_speed - fwd_movement/loop_period;
+//
+//		new_v_motor = base_v_motor + K_fwd * fwd_error;
+//
+//		int new_PWM = calc_PWM(new_v_motor);
+//
+//		TIM2->CCR4 = new_PWM;
+//		TIM2->CCR3 = new_PWM;
+//
+//		prev_d_center = d_center;
+	}
+
+	time_count++;
 }
 /* USER CODE END 4 */
 
