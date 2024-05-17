@@ -65,7 +65,8 @@ int motorR = 0;
 const int base_PWM = 1300;
 const int K_rot = 5;
 
-
+float intended_speed = 180;
+int time_count = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
