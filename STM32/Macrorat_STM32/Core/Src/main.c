@@ -88,6 +88,7 @@ uint16_t prev_count_right = 0;
 int motorL = 0;
 int motorR = 0;
 
+// this change better register
 float base_v_motor = 1;
 int motor_PWM = 0;
 float x = 1;
