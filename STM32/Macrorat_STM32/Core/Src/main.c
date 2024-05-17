@@ -67,6 +67,7 @@ const int K_rot = 5;
 
 float intended_speed = 180;
 int time_count = 0;
+int32_t d_center = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
