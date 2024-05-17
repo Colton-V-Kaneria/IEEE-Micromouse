@@ -36,7 +36,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define kickstart_v 0.0
 
+#define K_fwd 0.3
+
+#define loop_period 1
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
