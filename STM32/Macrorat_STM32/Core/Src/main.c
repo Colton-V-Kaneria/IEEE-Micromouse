@@ -90,6 +90,26 @@ int max(int a, int b)
 	return (a > b) ? a : b;
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
+	if (time_count % 1000 == 0)
+	{
+//		int fwd_movement = d_center - prev_d_center;
+//
+//		// find the difference between intended speed and actual speed
+//		fwd_error = intended_speed - fwd_movement/loop_period;
+//
+//		new_v_motor = base_v_motor + K_fwd * fwd_error;
+//
+//		int new_PWM = calc_PWM(new_v_motor);
+//
+//		TIM2->CCR4 = new_PWM;
+//		TIM2->CCR3 = new_PWM;
+//
+//		prev_d_center = d_center;
+	}
+
+	time_count++;
+}
 
 /* USER CODE END 0 */
 
