@@ -263,13 +263,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 
 void IR_test()
 {
-	dist_t sensor = FL;
-
-	do
+	for (dist_t sensor = FL; sensor != FR; sensor++)	// iterates through all sensors left to right
 	{
 		IR_dists[sensor] = average_dist(sensor);
-		sensor++;
-	} while (sensor != FR);
+	}
 
 //	dis_FR = average_dist(FR);
 //	dis_FL = average_dist(FL);
