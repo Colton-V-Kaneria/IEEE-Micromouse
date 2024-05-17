@@ -39,9 +39,9 @@ typedef enum {
 /* USER CODE BEGIN PD */
 #define diameter 33		// wheel diameter
 #define RW 41			// radius from center to wheel
-#define max_PWM 1600
 #define v_ratio 0.0008172
-#define min_v 4.5
+#define max_v_batt 8.10
+#define kickstart_v 0.0
 
 #define K_fwd 0.3
 
@@ -88,10 +88,9 @@ uint16_t prev_count_right = 0;
 int motorL = 0;
 int motorR = 0;
 
-float base_v_motor = 3;
-
+float base_v_motor = 1;
 int motor_PWM = 0;
-int new_v_motor = 0;
+float x = 1;
 
 uint16_t battery_reading = 0;
 float v_batt = 0;
@@ -211,6 +210,8 @@ float calc_v_batt()
 
 int calc_PWM(float voltage)
 {
+	v_batt = calc_v_batt();
+	x = voltage;
 	return (voltage/v_batt)*2047;
 }
 
@@ -260,48 +261,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-void motor_test()
-{
-	//HAL_TIM_IC_CaptureCallback(&htim2);
-
-	TIM2->CCR4 = 1350; // right motor
-	TIM2->CCR3 = 1350; // left motor
-
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-	HAL_Delay(1500);
-
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-	HAL_Delay(1500);
-
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 1);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 1);
-	HAL_Delay(1500);
-
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-	HAL_Delay(1500);
-}
-
-void left_motor_test()
-{
-	TIM2->CCR3 = 1350; // left motor
-
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-}
-
 void IR_test()
 {
 	dist_t sensor = FL;
@@ -318,26 +277,6 @@ void IR_test()
 //	dis_L = average_dist(L);
 }
 
-void PWM_graph_test()
-{
-	v_batt = calc_v_batt();		// variables for live expressions
-	motor_PWM = calc_PWM(base_v_motor);
-
-	TIM2->CCR4 = motor_PWM;
-	TIM2->CCR3 = motor_PWM;
-
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-
-	HAL_Delay(60000);
-
-	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);	// stop both motors
-	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-}
 
 int min(int a, int b)
 {
@@ -349,6 +288,21 @@ int max(int a, int b)
 {
 	return (a > b) ? a : b;
 }
+
+void kickstart_motors()
+{
+	motor_PWM = calc_PWM(kickstart_v);
+
+	TIM2->CCR4 = motor_PWM;
+	TIM2->CCR3 = motor_PWM;
+
+	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
+	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+	HAL_Delay(50);
+}
 /* USER CODE END 0 */
 
 /**
@@ -358,7 +312,6 @@ int max(int a, int b)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -384,14 +337,29 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-  //HAL_TIM_Base_Start_IT(&htim2);
+  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
+
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
 
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_ALL);
 
-  PWM_graph_test();
+  HAL_Delay(10000);
+  //kickstart_motors();
+
+  motor_PWM = calc_PWM(base_v_motor);
+
+  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
+  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+  TIM2->CCR4 = motor_PWM;
+  TIM2->CCR3 = motor_PWM;
+
+  // motors are already spinning from being kickstarted
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -399,8 +367,13 @@ int main(void)
 
   while (1)
   {
-
-
+	 if (d_center >= 1000)
+	 {
+		HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
+		HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+		HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
+		HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+	 }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -525,7 +498,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 72;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 10000;
+  htim2.Init.Period = 1000;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -548,7 +521,7 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 1024;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
@@ -682,15 +655,15 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_BWD_Pin
-                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin, GPIO_PIN_RESET);
+                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin|BUZZER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : EMIT_R_Pin EMIT_L_Pin EMIT_FL_Pin MR_BWD_Pin
-                           ML_BWD_Pin MR_FWD_Pin EMIT_FR_Pin */
+                           ML_BWD_Pin MR_FWD_Pin EMIT_FR_Pin BUZZER_Pin */
   GPIO_InitStruct.Pin = EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_BWD_Pin
-                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin;
+                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin|BUZZER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -702,12 +675,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(ML_FWD_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PB8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

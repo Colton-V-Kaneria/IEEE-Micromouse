@@ -97,6 +97,8 @@ void Error_Handler(void);
 #define MR_ENC_B_GPIO_Port GPIOB
 #define MR_ENC_A_Pin GPIO_PIN_7
 #define MR_ENC_A_GPIO_Port GPIOB
+#define BUZZER_Pin GPIO_PIN_8
+#define BUZZER_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
