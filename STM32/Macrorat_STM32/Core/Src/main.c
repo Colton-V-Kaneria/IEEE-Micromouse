@@ -89,7 +89,7 @@ int motorL = 0;
 int motorR = 0;
 
 // this change better register
-float base_v_motor = 0;
+float base_v_motor = 4;
 int motor_PWM = 0;
 float x = 1;
 
@@ -212,7 +212,6 @@ float calc_v_batt()
 int calc_PWM(float voltage)
 {
 	v_batt = calc_v_batt();
-	x = voltage;
 	return (voltage/v_batt)*2047;
 }
 
@@ -335,7 +334,7 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);
 
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
@@ -343,18 +342,21 @@ int main(void)
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_ALL);
 
-  //HAL_Delay(10000);
+  x = base_v_motor;
+
+  HAL_Delay(10000);
   //kickstart_motors();
 
   motor_PWM = calc_PWM(base_v_motor);
 
+  TIM2->CCR4 = motor_PWM;
+  TIM2->CCR3 = motor_PWM;
+
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
   HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
   HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
   HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
   HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-
-  TIM2->CCR4 = motor_PWM;
-  TIM2->CCR3 = motor_PWM;
 
   // motors are already spinning from being kickstarted
 
@@ -367,10 +369,7 @@ int main(void)
   {
 	 if (d_center >= 1000)
 	 {
-		HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
-		HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-		HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
-		HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+		break;
 	 }
     /* USER CODE END WHILE */
 
@@ -378,6 +377,13 @@ int main(void)
 	  //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	  //HAL_Delay(500);  /* Insert delay 500 ms */
   }
+
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+
+  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
+  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
+  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
   /* USER CODE END 3 */
 }
 
@@ -647,9 +653,13 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_BWD_Pin
@@ -657,6 +667,13 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : EMIT_R_Pin EMIT_L_Pin EMIT_FL_Pin MR_BWD_Pin
                            ML_BWD_Pin MR_FWD_Pin EMIT_FR_Pin BUZZER_Pin */
