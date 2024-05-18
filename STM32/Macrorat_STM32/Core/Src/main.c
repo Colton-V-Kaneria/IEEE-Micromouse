@@ -312,6 +312,21 @@ int max(int a, int b)
 {
 	return (a > b) ? a : b;
 }
+
+void kickstart_motors()
+{
+	motor_PWM = calc_PWM(kickstart_v);
+
+	TIM2->CCR4 = motor_PWM;
+	TIM2->CCR3 = motor_PWM;
+
+	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
+	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+	HAL_Delay(50);
+}
 /* USER CODE END 0 */
 
 /**
