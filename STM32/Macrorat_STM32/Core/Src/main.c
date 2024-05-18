@@ -39,7 +39,7 @@ typedef enum {
 /* USER CODE BEGIN PD */
 #define diameter 33		// wheel diameter
 #define RW 41			// radius from center to wheel
-#define v_ratio 0.0008172
+#define v_ratio 0.00082
 #define max_v_batt 8.10
 #define kickstart_v 0.0
 
@@ -89,7 +89,7 @@ int motorL = 0;
 int motorR = 0;
 
 // this change better register
-float base_v_motor = 1;
+float base_v_motor = 0;
 int motor_PWM = 0;
 float x = 1;
 
@@ -343,7 +343,7 @@ int main(void)
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_ALL);
 
-  HAL_Delay(10000);
+  //HAL_Delay(10000);
   //kickstart_motors();
 
   motor_PWM = calc_PWM(base_v_motor);
