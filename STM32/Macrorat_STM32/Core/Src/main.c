@@ -294,10 +294,13 @@ void Center_Adjustment(void){
 
     HAL_Delay(1500);
 
-    HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
-    HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-    HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
-    HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+    TIM2->CCR4 = 675; // right motor slow down
+    TIM2->CCR3 = 2000; // left motor speed up
+
+    // HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
+    // HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+    // HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
+    // HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 
     HAL_Delay(1500);
     }
@@ -313,11 +316,14 @@ void Center_Adjustment(void){
 
     HAL_Delay(1500);
 
-    HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
-    HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-    HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
-    HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+    // HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0); // set both to LOW to stop
+    // HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+    // HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0); // set both to LOW to stop
+    // HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 
+    TIM2->CCR4 = 2000; // right motor speed up
+    TIM2->CCR3 = 675; // left motor slow down
+    
     HAL_Delay(1500);
   }
   if (enc_left == enc_right){
