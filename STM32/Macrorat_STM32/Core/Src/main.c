@@ -285,7 +285,7 @@ void IR_test()
 {
 	for (dist_t sensor = FL; sensor != FR; sensor++)	// iterates through all sensors left to right
 	{
-		IR_dists[sensor] = average_dist(sensor);
+		IR_dists[sensor] = measure_dist(sensor);
 	}
 
 //	dis_FR = average_dist(FR);
