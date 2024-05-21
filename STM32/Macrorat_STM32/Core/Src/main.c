@@ -283,15 +283,13 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 
 void IR_test()
 {
-	for (dist_t sensor = FL; sensor != FR; sensor++)	// iterates through all sensors left to right
+	dist_t sensor = FL;
+
+	do
 	{
 		IR_dists[sensor] = measure_dist(sensor);
-	}
-
-//	dis_FR = average_dist(FR);
-//	dis_FL = average_dist(FL);
-//	dis_R = average_dist(R);
-//	dis_L = average_dist(L);
+		sensor++;
+	} while (sensor != FL);
 }
 
 
@@ -451,12 +449,6 @@ int main(void)
 //	  HAL_Delay(500);  /* Insert delay 500 ms */
   }
 
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-
-  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
-  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
-  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
   /* USER CODE END 3 */
 }
 
@@ -842,46 +834,46 @@ static void ADC1_Select_CH9(void) {
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
-	if (time_count % ((int)(callback_period * 1000)) == 0)
-	{
-		switch(movement)
-		{
-			case stopped:
-				break;
-			case forward:
-//				fwd_movement = d_center - prev_d_center;
+//	if (time_count % ((int)(callback_period * 1000)) == 0)
+//	{
+//		switch(movement)
+//		{
+//			case stopped:
+//				break;
+//			case forward:
+////				fwd_movement = d_center - prev_d_center;
+////
+////				// find the difference between intended distance and actual distance
+////				fwd_error = fwd_movement - intended_distance;
+////				rot_error = enc_right - enc_left;
 //
-//				// find the difference between intended distance and actual distance
-//				fwd_error = fwd_movement - intended_distance;
-//				rot_error = enc_right - enc_left;
-
-//				IR_dists[L] = average_dist(L);
-//				IR_dists[R] = average_dist(R);
-//				left_side_error = wall_nominal[L] - IR_dists[L] * (wall_nominal[L] / wall_standard[L]);
-//				right_side_error = wall_nominal[R] - IR_dists[R] * (wall_nominal[R] / wall_standard[R]);
-//				str_error = right_side_error - left_side_error;
+////				IR_dists[L] = average_dist(L);
+////				IR_dists[R] = average_dist(R);
+////				left_side_error = wall_nominal[L] - IR_dists[L] * (wall_nominal[L] / wall_standard[L]);
+////				right_side_error = wall_nominal[R] - IR_dists[R] * (wall_nominal[R] / wall_standard[R]);
+////				str_error = right_side_error - left_side_error;
+////
+////				new_v_motor_L = base_v_motor + K_str * str_error;
+////				new_v_motor_L = max(new_v_motor_L, 0);
+////				new_v_motor_R = base_v_motor + K_str * str_error;
+////				new_v_motor_R = max(new_v_motor_R, 0);
+////
+////				// IMPORTANT: left motor is channel 4, right motor is channel 3
+////				TIM2->CCR4 = calc_PWM(new_v_motor_L);
+////				TIM2->CCR3 = calc_PWM(new_v_motor_R);
+////
+////				prev_d_center = d_center;
+//				break;
+//			case turn_L:
+//				break;
+//			case turn_R:
+//				break;
+//			case turn_180:
+//				break;
+//		}
+//	}
 //
-//				new_v_motor_L = base_v_motor + K_str * str_error;
-//				new_v_motor_L = max(new_v_motor_L, 0);
-//				new_v_motor_R = base_v_motor + K_str * str_error;
-//				new_v_motor_R = max(new_v_motor_R, 0);
-//
-//				// IMPORTANT: left motor is channel 4, right motor is channel 3
-//				TIM2->CCR4 = calc_PWM(new_v_motor_L);
-//				TIM2->CCR3 = calc_PWM(new_v_motor_R);
-//
-//				prev_d_center = d_center;
-				break;
-			case turn_L:
-				break;
-			case turn_R:
-				break;
-			case turn_180:
-				break;
-		}
-	}
-
-	time_count++;
+//	time_count++;
 }
 /* USER CODE END 4 */
 
