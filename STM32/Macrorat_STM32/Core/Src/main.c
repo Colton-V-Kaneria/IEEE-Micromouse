@@ -101,13 +101,8 @@ static void ADC1_Select_CH9(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 uint16_t measure_dist(dist_t dist) {
-<<<<<<< HEAD
-GPIO_TypeDef* emitter_port;
-uint16_t emitter_pin;
-=======
 	GPIO_TypeDef* emitter_port;
 	uint16_t emitter_pin;
->>>>>>> Colton
 	GPIO_TypeDef* receiver_port;
 	uint16_t receiver_pin;
 
@@ -329,7 +324,6 @@ void Center_Adjustment(void){
   if (enc_left == enc_right){
     //do nothing
   }
-    return 0;
 }
 
 int min(int a, int b)
@@ -409,31 +403,31 @@ int main(void)
 
 //	HAL_Delay(5000); // 5 second delay until motors spin
 
-  v_batt = calc_v_batt();		// variables for live expressions
-  initial_PWM = calc_PWM(min_v); // calculate PWM needed to set motors in motion
-
-  TIM2->CCR4 = initial_PWM; // right motor
-  TIM2->CCR3 = initial_PWM; // left motor
-
-  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);	// spin both motors forward
-  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
-  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
-
-  HAL_Delay(35);
-
-  v_batt = calc_v_batt();		// variables for live expressions
-  motor_PWM = calc_PWM(v_motor);
-
-  TIM2->CCR4 = motor_PWM;
-  TIM2->CCR3 = motor_PWM;
-
-  HAL_Delay(60000);
-
-  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);	// stop both motors
-  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
-  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+//  v_batt = calc_v_batt();		// variables for live expressions
+//  initial_PWM = calc_PWM(min_v); // calculate PWM needed to set motors in motion
+//
+//  TIM2->CCR4 = initial_PWM; // right motor
+//  TIM2->CCR3 = initial_PWM; // left motor
+//
+//  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);	// spin both motors forward
+//  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+//  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+//  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+//
+//  HAL_Delay(35);
+//
+//  v_batt = calc_v_batt();		// variables for live expressions
+//  motor_PWM = calc_PWM(v_motor);
+//
+//  TIM2->CCR4 = motor_PWM;
+//  TIM2->CCR3 = motor_PWM;
+//
+//  HAL_Delay(60000);
+//
+//  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);	// stop both motors
+//  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+//  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
+//  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 
   /* USER CODE END 2 */
 
@@ -442,6 +436,7 @@ int main(void)
 
   while (1)
   {
+	  IR_test();
 //	  motorL = TIM2->CCR3;
 //	  motorR = TIM2->CCR4;
 //
@@ -849,6 +844,4 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 <<<<<<< HEAD
 #endif /* USE_FULL_ASSERT */
-=======
-#endif /* USE_FULL_ASSERT */
->>>>>>> Colton
+
