@@ -55,7 +55,7 @@ typedef enum {
 
 #define K_fwd -0.1
 #define K_rot 0.1
-#define K_str -0.001
+#define K_str -0.00055
 
 #define loop_period 1
 
@@ -427,15 +427,7 @@ int main(void)
 
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);	//turn off buzzer?
 
-//  HAL_Delay(10000);
-//  //kickstart_motors();
-//
-//  motor_PWM = calc_PWM(base_v_motor);
-//
-//  TIM2->CCR4 = motor_PWM;
-//  TIM2->CCR3 = motor_PWM;
-//
-//  move_forward();
+  move_forward();
 
   // motors are already spinning from being kickstarted
 
@@ -873,11 +865,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 				new_v_motor_L = max(new_v_motor_L, 0);
 				new_v_motor_R = base_v_motor + K_str * str_error;
 				new_v_motor_R = max(new_v_motor_R, 0);
-//
-//				// IMPORTANT: left motor is channel 4, right motor is channel 3
-//				TIM2->CCR4 = calc_PWM(new_v_motor_L);
-//				TIM2->CCR3 = calc_PWM(new_v_motor_R);
-//
+
+				// IMPORTANT: left motor is channel 4, right motor is channel 3
+				TIM2->CCR4 = calc_PWM(new_v_motor_L);
+				TIM2->CCR3 = calc_PWM(new_v_motor_R);
+
 //				prev_d_center = d_center;
 				break;
 			case turn_L:
