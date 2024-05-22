@@ -53,8 +53,9 @@ typedef enum {
 #define callback_period 0.001
 #define intended_speed 400.0
 
-#define K_fwd -0.2
-#define K_rot 0.001
+#define K_fwd -0.1
+#define K_rot 0.1
+#define K_str -0.00055
 
 #define loop_period 1
 
@@ -87,6 +88,9 @@ int32_t prev_d_center = 0;
 
 int32_t fwd_error = 0;
 int32_t rot_error = 0;
+int32_t str_error = 0;
+int32_t left_side_error = 0;
+int32_t right_side_error = 0;
 
 int32_t angle = 0;
 uint16_t raw_count_left = 0;
@@ -113,6 +117,8 @@ int intended_distance = intended_speed * callback_period;
 int time_count = 0;
 
 move_t movement = stopped;
+
+dist_t sensor = FL;
 
 // const int K_fwd = ?;
 // testing to merge into main here
@@ -279,15 +285,21 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 
 void IR_test()
 {
-	for (dist_t sensor = FL; sensor != FR; sensor++)	// iterates through all sensors left to right
+	do
 	{
 		IR_dists[sensor] = average_dist(sensor);
-	}
+		sensor = (sensor + 1) % 4;
+	} while (sensor != FL);
 
-//	dis_FR = average_dist(FR);
-//	dis_FL = average_dist(FL);
-//	dis_R = average_dist(R);
-//	dis_L = average_dist(L);
+//	for (dist_t sensor = FL; sensor != FR; sensor++)	// iterates through all sensors left to right
+//	{
+//		IR_dists[sensor] = measure_dist(sensor);
+//	}
+
+//	IR_dists[FR] = measure_dist(FR);
+//	IR_dists[L] = measure_dist(L);
+//	IR_dists[R] = measure_dist(R);
+//	IR_dists[FR] = measure_dist(FR);
 }
 
 
@@ -415,14 +427,6 @@ int main(void)
 
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);	//turn off buzzer?
 
-//  HAL_Delay(10000);
-//  //kickstart_motors();
-//
-  motor_PWM = calc_PWM(base_v_motor);
-
-  TIM2->CCR4 = motor_PWM;
-  TIM2->CCR3 = motor_PWM;
-
   move_forward();
 
   // motors are already spinning from being kickstarted
@@ -431,6 +435,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  movement = forward;
 
   while (1)
   {
@@ -844,22 +849,28 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 			case stopped:
 				break;
 			case forward:
-				fwd_movement = d_center - prev_d_center;
+//				fwd_movement = d_center - prev_d_center;
+//
+//				// find the difference between intended distance and actual distance
+//				fwd_error = fwd_movement - intended_distance;
+//				rot_error = enc_right - enc_left;
 
-				// find the difference between intended distance and actual distance
-				fwd_error = fwd_movement - intended_distance;
-				rot_error = enc_right - enc_left;
+				IR_dists[L] = average_dist(L);
+				IR_dists[R] = average_dist(R);
+				left_side_error = wall_nominal[L] - IR_dists[L] * (wall_nominal[L] / (float)(wall_standard[L]));
+				right_side_error = wall_nominal[R] - IR_dists[R] * (wall_nominal[R] / (float)(wall_standard[R]));
+				str_error = right_side_error - left_side_error;
 
-				new_v_motor_L = base_v_motor + K_fwd * fwd_error + K_rot * rot_error;
+				new_v_motor_L = base_v_motor - K_str * str_error;
 				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_motor + K_fwd * fwd_error - K_rot * rot_error;
+				new_v_motor_R = base_v_motor + K_str * str_error;
 				new_v_motor_R = max(new_v_motor_R, 0);
 
 				// IMPORTANT: left motor is channel 4, right motor is channel 3
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
 				TIM2->CCR3 = calc_PWM(new_v_motor_R);
 
-				prev_d_center = d_center;
+//				prev_d_center = d_center;
 				break;
 			case turn_L:
 				break;
