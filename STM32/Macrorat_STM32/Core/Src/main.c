@@ -51,11 +51,11 @@ typedef enum {
 #define max_v_batt 8.10
 #define kickstart_v 0.0
 #define callback_period 0.001
-#define intended_speed 400.0
+#define intended_speed 180.0
 
-#define K_fwd -0.1
-#define K_rot 0.1
-#define K_str -0.00055
+#define K_fwd 0.1
+#define K_rot 0.003
+#define K_str 0.0004
 
 #define loop_period 1
 
@@ -76,11 +76,14 @@ TIM_HandleTypeDef htim4;
 /* USER CODE BEGIN PV */
 uint16_t IR_dists[4] = {0};
 uint16_t IR_data[4][15] = {{0}};
-uint16_t wall_standard[4] = {2927, 1210, 1210, 2962};
+uint16_t wall_standard[4] = {2927, 1136, 1105, 2962};
 uint16_t wall_nominal[4] = {200, 100, 100, 200};
 
 int32_t enc_left = 0;
 int32_t enc_right = 0;
+int32_t prev_enc_left = 0;
+int32_t prev_enc_right = 0;
+
 int32_t d_L = 0;
 int32_t d_R = 0;
 int32_t d_center = 0;	// center distance
@@ -101,13 +104,19 @@ int motorL = 0;
 int motorR = 0;
 
 // this change better register
-float base_v_motor = 0.5;
+const float base_v_fwd = 0.47;
+const float base_v_turn = 0.6;
 int fwd_movement = 0;
+int enc_right_mvt = 0;
+int enc_left_mvt = 0;
+
 int new_PWM = 0;
 float new_v_motor_L = 0;
 float new_v_motor_R = 0;
 int motor_PWM = 0;
 int x = 0;
+int y = 0;
+int z = 0;
 
 uint16_t battery_reading = 0;
 float v_batt = 0;
@@ -329,7 +338,7 @@ void kickstart_motors()
 	HAL_Delay(50);
 }
 
-void stop()
+void set_stop()
 {
 	movement = stopped;
 
@@ -338,9 +347,12 @@ void stop()
 	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
 	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+	TIM2->CCR4 = 0;
+	TIM2->CCR3 = 0;
 }
 
-void move_forward()
+void set_move_forward()
 {
 	movement = forward;
 
@@ -351,7 +363,7 @@ void move_forward()
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 }
 
-void left_turn()
+void set_left_turn()
 {
 	movement = turn_L;
 
@@ -362,7 +374,7 @@ void left_turn()
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 }
 
-void right_turn()
+void set_right_turn()
 {
 	movement = turn_R;
 
@@ -373,7 +385,7 @@ void right_turn()
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 1);
 }
 
-void about_turn()		// I swear this is a real term
+void set_about_turn()		// I swear this is a real term
 {
 	movement = turn_180;
 
@@ -427,7 +439,8 @@ int main(void)
 
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);	//turn off buzzer?
 
-  move_forward();
+  set_right_turn();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
   // motors are already spinning from being kickstarted
 
@@ -435,13 +448,11 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  movement = forward;
 
   while (1)
   {
-//	 if (d_center >= 1000)
+//	 if (angle == 180 || angle == -180)
 //	 {
-//		x = time_count;
 //		break;
 //	 }
     /* USER CODE END WHILE */
@@ -451,12 +462,7 @@ int main(void)
 //	  HAL_Delay(500);  /* Insert delay 500 ms */
   }
 
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-
-  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
-  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
-  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+  set_stop();
   /* USER CODE END 3 */
 }
 
@@ -849,34 +855,87 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 			case stopped:
 				break;
 			case forward:
-//				fwd_movement = d_center - prev_d_center;
-//
-//				// find the difference between intended distance and actual distance
-//				fwd_error = fwd_movement - intended_distance;
-//				rot_error = enc_right - enc_left;
+				fwd_movement = d_center - prev_d_center;
+
+				// find the difference between intended distance and actual distance
+				fwd_error = fwd_movement - intended_distance;
 
 				IR_dists[L] = average_dist(L);
 				IR_dists[R] = average_dist(R);
+
 				left_side_error = wall_nominal[L] - IR_dists[L] * (wall_nominal[L] / (float)(wall_standard[L]));
 				right_side_error = wall_nominal[R] - IR_dists[R] * (wall_nominal[R] / (float)(wall_standard[R]));
-				str_error = right_side_error - left_side_error;
 
-				new_v_motor_L = base_v_motor - K_str * str_error;
+				if (IR_dists[L] > 200 && IR_dists[R] > 200)
+				{
+					str_error = right_side_error - left_side_error;
+					rot_error = 0;
+					enc_right = 0;
+					enc_left = 0;
+				}
+//				else if (IR_dists[L] > 200 && IR_dists[R] <= 200)
+//				{
+//					y = 1;
+//					str_error = -2 * left_side_error;
+//					rot_error = 0;
+//				}
+//				else if (IR_dists[L] <= 200 && IR_dists[R] > 200)
+//				{
+//					z = 1;
+//					str_error = 2 * right_side_error;
+//					rot_error = 0;
+//				}
+				else	// no walls on either side
+				{
+					rot_error = enc_right - enc_left; // right diff - left diff
+					str_error = 0;
+				}
+
+				new_v_motor_L = base_v_fwd - K_fwd * fwd_error + K_rot * rot_error + K_str * str_error;
 				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_motor + K_str * str_error;
+				new_v_motor_R = base_v_fwd - K_fwd * fwd_error - K_rot * rot_error - K_str * str_error;
 				new_v_motor_R = max(new_v_motor_R, 0);
 
 				// IMPORTANT: left motor is channel 4, right motor is channel 3
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
 				TIM2->CCR3 = calc_PWM(new_v_motor_R);
 
-//				prev_d_center = d_center;
+				prev_d_center = d_center;
+				prev_enc_left = enc_left;
+				prev_enc_right = enc_right;
 				break;
 			case turn_L:
+				rot_error = enc_right + enc_left;
+
+				new_v_motor_L = base_v_turn + K_rot * rot_error;
+				new_v_motor_L = max(new_v_motor_L, 0);
+				new_v_motor_R = base_v_turn - K_rot * rot_error;
+				new_v_motor_R = max(new_v_motor_R, 0);
+
+				TIM2->CCR4 = calc_PWM(new_v_motor_L);
+				TIM2->CCR3 = calc_PWM(new_v_motor_R);
 				break;
 			case turn_R:
+				rot_error = enc_left + enc_right;
+
+				new_v_motor_L = base_v_turn - K_rot * rot_error;
+				new_v_motor_L = max(new_v_motor_L, 0);
+				new_v_motor_R = base_v_turn + K_rot * rot_error;
+				new_v_motor_R = max(new_v_motor_R, 0);
+
+				TIM2->CCR4 = calc_PWM(new_v_motor_L);
+				TIM2->CCR3 = calc_PWM(new_v_motor_R);
 				break;
 			case turn_180:
+				rot_error = enc_right + enc_left;
+
+				new_v_motor_L = base_v_turn + K_rot * rot_error;
+				new_v_motor_L = max(new_v_motor_L, 0);
+				new_v_motor_R = base_v_turn - K_rot * rot_error;
+				new_v_motor_R = max(new_v_motor_R, 0);
+
+				TIM2->CCR4 = calc_PWM(new_v_motor_L);
+				TIM2->CCR3 = calc_PWM(new_v_motor_R);
 				break;
 		}
 	}
