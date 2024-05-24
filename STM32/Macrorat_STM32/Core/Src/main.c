@@ -913,9 +913,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 			case turn_L:
 				rot_error = enc_right + enc_left;
 
-				new_v_motor_L = base_v_turn + K_rot * rot_error;
+				new_v_motor_L = base_v_turn + K_rot * rot_error + K_turn * (90 - angle);	// angle is positive here so we should be good
 				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_turn - K_rot * rot_error;
+				new_v_motor_R = base_v_turn - K_rot * rot_error + K_turn * (90 - angle);
 				new_v_motor_R = max(new_v_motor_R, 0);
 
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
