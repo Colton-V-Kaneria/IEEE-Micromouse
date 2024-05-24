@@ -54,7 +54,8 @@ typedef enum {
 #define intended_speed 180.0
 
 #define K_fwd 0.1
-#define K_rot 0.003
+#define K_rot 0.00
+#define K_turn 0.0007
 #define K_str 0.0004
 
 #define loop_period 1
@@ -76,7 +77,7 @@ TIM_HandleTypeDef htim4;
 /* USER CODE BEGIN PV */
 uint16_t IR_dists[4] = {0};
 uint16_t IR_data[4][15] = {{0}};
-uint16_t wall_standard[4] = {2927, 1136, 1105, 2962};
+uint16_t wall_standard[4] = {2848, 1136, 1105, 3182};
 uint16_t wall_nominal[4] = {200, 100, 100, 200};
 
 int32_t enc_left = 0;
@@ -105,7 +106,7 @@ int motorR = 0;
 
 // this change better register
 const float base_v_fwd = 0.47;
-const float base_v_turn = 0.6;
+const float base_v_turn = 0.43;
 int fwd_movement = 0;
 int enc_right_mvt = 0;
 int enc_left_mvt = 0;
@@ -439,7 +440,9 @@ int main(void)
 
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);	//turn off buzzer?
 
-  set_right_turn();
+  HAL_Delay(5000);
+
+  set_about_turn();
   HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
   // motors are already spinning from being kickstarted
@@ -451,10 +454,11 @@ int main(void)
 
   while (1)
   {
-//	 if (angle == 180 || angle == -180)
-//	 {
-//		break;
-//	 }
+	 if (angle == 180 || angle == -180)
+	 {
+		 HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+		 break;
+	 }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -855,6 +859,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 			case stopped:
 				break;
 			case forward:
+				angle = 0;
+
 				fwd_movement = d_center - prev_d_center;
 
 				// find the difference between intended distance and actual distance
@@ -929,9 +935,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 			case turn_180:
 				rot_error = enc_right + enc_left;
 
-				new_v_motor_L = base_v_turn + K_rot * rot_error;
+				new_v_motor_L = base_v_turn + K_rot * rot_error + K_turn * (180 - angle);	// angle is positive here so we should be good
 				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_turn - K_rot * rot_error;
+				new_v_motor_R = base_v_turn - K_rot * rot_error + K_turn * (180 - angle);
 				new_v_motor_R = max(new_v_motor_R, 0);
 
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
