@@ -485,7 +485,7 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-//  HAL_TIM_Base_Start_IT(&htim2);		// start timer 2 in interrupt mode
+  HAL_TIM_Base_Start_IT(&htim2);		// start timer 2 in interrupt mode
 
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
@@ -495,9 +495,10 @@ int main(void)
 
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);	//turn off buzzer?
 
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-
-  // motors are already spinning from being kickstarted
+  for (int i = 1; i <= 4; i++)
+  {
+	  move_forward();
+  }
 
   /* USER CODE END 2 */
 
