@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 /* USER CODE END Includes */
 
@@ -46,7 +47,7 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define diameter 33		// wheel diameter
+#define diameter 32		// wheel diameter
 #define RW 41			// radius from center to wheel
 #define v_ratio 0.00082
 #define max_v_batt 8.10
@@ -108,8 +109,8 @@ int motorL = 0;
 int motorR = 0;
 
 // this change better register
-const float base_v_fwd_L = 0.5;
-const float base_v_fwd_R = 0.715;
+const float base_v_fwd_L = 0.45;
+const float base_v_fwd_R = 0.6435;
 const float base_v_turn_L = 0.53;
 const float base_v_turn_R = 0.745;
 //const float base_v_turn = 1.5;
@@ -299,6 +300,12 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
+void reset_encoders()
+{
+	enc_left = 0;
+	enc_right = 0;
+}
+
 void IR_test()
 {
 	do
@@ -376,17 +383,19 @@ void move_forward()
 	{
 		if (d_center - prev_cell_distance >= 180)
 		{
-			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-			stop();
 			break;
 		}
 	}
 
+	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	stop();
 }
 
 void left_turn()
 {
 	movement = turn_L;
+
+	reset_encoders();
 
 	initial_angle = angle;
 
@@ -398,18 +407,22 @@ void left_turn()
 
 	while (1)
 	{
-	  if ((angle - initial_angle) >= 90)
+	  if (abs(angle - initial_angle) >= 90)
 	  {
-		 HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-		 stop();
 		 break;
 	  }
 	}
+
+	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	stop();
+	reset_encoders();
 }
 
 void right_turn()
 {
 	movement = turn_R;
+
+	reset_encoders();
 
 	initial_angle = angle;
 
@@ -421,18 +434,22 @@ void right_turn()
 
 	while (1)
 	{
-	  if ((angle - initial_angle) <= -90)
+	  if (abs(angle - initial_angle) >= 90)
 	  {
-		 HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-		 stop();
 		 break;
 	  }
 	}
+
+	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	stop();
+	reset_encoders();
 }
 
 void about_turn()		// I swear this is a real term
 {
 	movement = turn_180;
+
+	reset_encoders();
 
 	initial_angle = angle;
 
@@ -444,12 +461,15 @@ void about_turn()		// I swear this is a real term
 
 	while (1)
 	{
-	  if ((angle - initial_angle) >= 180)
+	  if (abs(angle - initial_angle) >= 180)
 	  {
-		 HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 		 break;
 	  }
 	}
+
+	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	stop();
+	reset_encoders();
 }
 /* USER CODE END 0 */
 
@@ -495,10 +515,16 @@ int main(void)
 
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);	//turn off buzzer?
 
-  for (int i = 1; i <= 4; i++)
-  {
-	  move_forward();
-  }
+  move_forward();
+  right_turn();
+  move_forward();
+//  move_forward();
+//  left_turn();
+//  move_forward();
+//  move_forward();
+//  left_turn();
+//  move_forward();
+//  move_forward();
 
   /* USER CODE END 2 */
 
