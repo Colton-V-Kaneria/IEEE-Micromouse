@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,8 +55,8 @@ typedef enum {
 #define intended_speed 180.0
 
 #define K_fwd 0.1
-#define K_rot 0.00
-#define K_turn 0.0007
+#define K_rot 0.005
+#define K_turn 0.00//5
 #define K_str 0.0004
 
 #define loop_period 1
@@ -77,7 +78,7 @@ TIM_HandleTypeDef htim4;
 /* USER CODE BEGIN PV */
 uint16_t IR_dists[4] = {0};
 uint16_t IR_data[4][15] = {{0}};
-uint16_t wall_standard[4] = {2848, 1136, 1105, 3182};
+uint16_t wall_standard[4] = {2500, 1040, 1030, 2590};
 uint16_t wall_nominal[4] = {200, 100, 100, 200};
 
 int32_t enc_left = 0;
@@ -89,6 +90,7 @@ int32_t d_L = 0;
 int32_t d_R = 0;
 int32_t d_center = 0;	// center distance
 int32_t prev_d_center = 0;
+int32_t prev_cell_distance = 0;
 
 int32_t fwd_error = 0;
 int32_t rot_error = 0;
@@ -97,6 +99,7 @@ int32_t left_side_error = 0;
 int32_t right_side_error = 0;
 
 int32_t angle = 0;
+int32_t initial_angle = 0;
 uint16_t raw_count_left = 0;
 uint16_t raw_count_right = 0;
 uint16_t prev_count_left = 0;
@@ -105,8 +108,11 @@ int motorL = 0;
 int motorR = 0;
 
 // this change better register
-const float base_v_fwd = 0.47;
-const float base_v_turn = 0.43;
+const float base_v_fwd_L = 0.5;
+const float base_v_fwd_R = 0.715;
+const float base_v_turn_L = 0.53;
+const float base_v_turn_R = 0.745;
+//const float base_v_turn = 1.5;
 int fwd_movement = 0;
 int enc_right_mvt = 0;
 int enc_left_mvt = 0;
@@ -192,7 +198,7 @@ uint16_t measure_dist(dist_t dist) {
 	}
 
 	HAL_GPIO_WritePin(emitter_port, emitter_pin, GPIO_PIN_SET);
-	HAL_Delay(5);
+//	HAL_Delay(5);
 
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
@@ -204,7 +210,7 @@ uint16_t measure_dist(dist_t dist) {
 	return adc_val;
 }
 
-uint16_t average_dist(dist_t sensor)	// dist tells us which sensor's distance we are measuring
+uint16_t scaled_average(dist_t sensor)	// dist tells us which sensor's distance we are measuring
 {
 	static int IR_index = 0;
 
@@ -219,7 +225,7 @@ uint16_t average_dist(dist_t sensor)	// dist tells us which sensor's distance we
 
 	IR_index = (IR_index + 1) % 15;
 
-	return sum / 15;
+	return (sum / 15.0) * (wall_nominal[sensor] / (float)(wall_standard[sensor]));
 }
 
 float calc_v_batt()
@@ -254,19 +260,19 @@ int calc_distance()
 
 int calc_angle()
 {
-	int angle = (int)((d_R - d_L)/(2.0 * RW) * (180.0/M_PI)) % 360;
+//	int angle = (int)((d_R - d_L)/(2.0 * RW) * (180.0/M_PI)) % 360;
+//
+//	// These next statements ensure the result is between -180 and 180
+//	if (angle > 180)
+//	{
+//		angle -= 360;
+//	}
+//	else if (angle < -180)
+//	{
+//		angle += 360;
+//	}
 
-	// These next statements ensure the result is between -180 and 180
-	if (angle > 180)
-	{
-		angle -= 360;
-	}
-	else if (angle < -180)
-	{
-		angle += 360;
-	}
-
-	return angle;
+	return (int)((d_R - d_L)/(2.0 * RW) * (180.0/M_PI));
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
@@ -297,21 +303,22 @@ void IR_test()
 {
 	do
 	{
-		IR_dists[sensor] = average_dist(sensor);
+		IR_dists[sensor] = scaled_average(sensor);
 		sensor = (sensor + 1) % 4;
 	} while (sensor != FL);
-
-//	for (dist_t sensor = FL; sensor != FR; sensor++)	// iterates through all sensors left to right
-//	{
-//		IR_dists[sensor] = measure_dist(sensor);
-//	}
-
-//	IR_dists[FR] = measure_dist(FR);
-//	IR_dists[L] = measure_dist(L);
-//	IR_dists[R] = measure_dist(R);
-//	IR_dists[FR] = measure_dist(FR);
 }
 
+int wallCheck(dist_t sensor)
+{
+	if (IR_dists[sensor] > 0.5 * wall_nominal[sensor])
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
 
 float min(float a, float b)
 {
@@ -339,7 +346,7 @@ void kickstart_motors()
 	HAL_Delay(50);
 }
 
-void set_stop()
+void stop()
 {
 	movement = stopped;
 
@@ -353,48 +360,96 @@ void set_stop()
 	TIM2->CCR3 = 0;
 }
 
-void set_move_forward()
+void move_forward()
 {
 	movement = forward;
+
+	prev_cell_distance = d_center;
 
 	// set both motors to move forward
 	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
 	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
 	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+	while (1)
+	{
+		if (d_center - prev_cell_distance >= 180)
+		{
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+			stop();
+			break;
+		}
+	}
+
 }
 
-void set_left_turn()
+void left_turn()
 {
 	movement = turn_L;
+
+	initial_angle = angle;
 
 	// set left motor to backward and right motor to forward
 	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
 	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 1);
 	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+	while (1)
+	{
+	  if ((angle - initial_angle) >= 90)
+	  {
+		 HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+		 stop();
+		 break;
+	  }
+	}
 }
 
-void set_right_turn()
+void right_turn()
 {
 	movement = turn_R;
+
+	initial_angle = angle;
 
 	// set left motor to forward and right motor to backward
 	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
 	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
 	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 1);
+
+	while (1)
+	{
+	  if ((angle - initial_angle) <= -90)
+	  {
+		 HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+		 stop();
+		 break;
+	  }
+	}
 }
 
-void set_about_turn()		// I swear this is a real term
+void about_turn()		// I swear this is a real term
 {
 	movement = turn_180;
+
+	initial_angle = angle;
 
 	// set left motor to backward and right motor to forward
 	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
 	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 1);
 	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+	while (1)
+	{
+	  if ((angle - initial_angle) >= 180)
+	  {
+		 HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+		 break;
+	  }
+	}
 }
 /* USER CODE END 0 */
 
@@ -430,7 +485,7 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start_IT(&htim2);		// start timer 2 in interrupt mode
+//  HAL_TIM_Base_Start_IT(&htim2);		// start timer 2 in interrupt mode
 
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
@@ -440,9 +495,6 @@ int main(void)
 
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);	//turn off buzzer?
 
-  HAL_Delay(5000);
-
-  set_about_turn();
   HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
   // motors are already spinning from being kickstarted
@@ -454,19 +506,12 @@ int main(void)
 
   while (1)
   {
-	 if (angle == 180 || angle == -180)
-	 {
-		 HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-		 break;
-	 }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 //	  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 //	  HAL_Delay(500);  /* Insert delay 500 ms */
   }
-
-  set_stop();
   /* USER CODE END 3 */
 }
 
@@ -745,8 +790,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_BWD_Pin
-                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin|BUZZER_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_FWD_Pin
+                          |ML_BWD_Pin|MR_BWD_Pin|EMIT_FR_Pin|BUZZER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, GPIO_PIN_RESET);
@@ -758,10 +803,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : EMIT_R_Pin EMIT_L_Pin EMIT_FL_Pin MR_BWD_Pin
-                           ML_BWD_Pin MR_FWD_Pin EMIT_FR_Pin BUZZER_Pin */
-  GPIO_InitStruct.Pin = EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_BWD_Pin
-                          |ML_BWD_Pin|MR_FWD_Pin|EMIT_FR_Pin|BUZZER_Pin;
+  /*Configure GPIO pins : EMIT_R_Pin EMIT_L_Pin EMIT_FL_Pin MR_FWD_Pin
+                           ML_BWD_Pin MR_BWD_Pin EMIT_FR_Pin BUZZER_Pin */
+  GPIO_InitStruct.Pin = EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_FWD_Pin
+                          |ML_BWD_Pin|MR_BWD_Pin|EMIT_FR_Pin|BUZZER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -866,40 +911,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 				// find the difference between intended distance and actual distance
 				fwd_error = fwd_movement - intended_distance;
 
-				IR_dists[L] = average_dist(L);
-				IR_dists[R] = average_dist(R);
+				IR_dists[L] = scaled_average(L);
+				IR_dists[R] = scaled_average(R);
 
-				left_side_error = wall_nominal[L] - IR_dists[L] * (wall_nominal[L] / (float)(wall_standard[L]));
-				right_side_error = wall_nominal[R] - IR_dists[R] * (wall_nominal[R] / (float)(wall_standard[R]));
+				left_side_error = wall_nominal[L] - IR_dists[L];
+				right_side_error = wall_nominal[R] - IR_dists[R];
 
-				if (IR_dists[L] > 200 && IR_dists[R] > 200)
+				if (wallCheck(L) && wallCheck(R))
 				{
 					str_error = right_side_error - left_side_error;
 					rot_error = 0;
-					enc_right = 0;
-					enc_left = 0;
 				}
-//				else if (IR_dists[L] > 200 && IR_dists[R] <= 200)
-//				{
-//					y = 1;
-//					str_error = -2 * left_side_error;
-//					rot_error = 0;
-//				}
-//				else if (IR_dists[L] <= 200 && IR_dists[R] > 200)
-//				{
-//					z = 1;
-//					str_error = 2 * right_side_error;
-//					rot_error = 0;
-//				}
 				else	// no walls on either side
 				{
 					rot_error = enc_right - enc_left; // right diff - left diff
 					str_error = 0;
 				}
 
-				new_v_motor_L = base_v_fwd - K_fwd * fwd_error + K_rot * rot_error + K_str * str_error;
+				new_v_motor_L = base_v_fwd_L - K_fwd * fwd_error + K_rot * rot_error + K_str * str_error;
 				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_fwd - K_fwd * fwd_error - K_rot * rot_error - K_str * str_error;
+				new_v_motor_R = base_v_fwd_R - K_fwd * fwd_error - K_rot * rot_error - K_str * str_error;
 				new_v_motor_R = max(new_v_motor_R, 0);
 
 				// IMPORTANT: left motor is channel 4, right motor is channel 3
@@ -913,9 +944,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 			case turn_L:
 				rot_error = enc_right + enc_left;
 
-				new_v_motor_L = base_v_turn + K_rot * rot_error + K_turn * (90 - angle);	// angle is positive here so we should be good
+				new_v_motor_L = base_v_turn_L + K_turn * rot_error;	// angle is positive here so we should be good
 				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_turn - K_rot * rot_error + K_turn * (90 - angle);
+				new_v_motor_R = base_v_turn_R - K_turn * rot_error;
 				new_v_motor_R = max(new_v_motor_R, 0);
 
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
@@ -924,9 +955,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 			case turn_R:
 				rot_error = enc_left + enc_right;
 
-				new_v_motor_L = base_v_turn - K_rot * rot_error;
+				new_v_motor_L = base_v_turn_L - K_turn * rot_error;
 				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_turn + K_rot * rot_error;
+				new_v_motor_R = base_v_turn_R + K_turn * rot_error;
 				new_v_motor_R = max(new_v_motor_R, 0);
 
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
@@ -935,9 +966,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 			case turn_180:
 				rot_error = enc_right + enc_left;
 
-				new_v_motor_L = base_v_turn + K_rot * rot_error + K_turn * (180 - angle);	// angle is positive here so we should be good
+				new_v_motor_L = base_v_turn_L + K_turn * rot_error;
 				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_turn - K_rot * rot_error + K_turn * (180 - angle);
+				new_v_motor_R = base_v_turn_R - K_turn * rot_error;
 				new_v_motor_R = max(new_v_motor_R, 0);
 
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
