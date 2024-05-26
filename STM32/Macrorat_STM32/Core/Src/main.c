@@ -47,8 +47,8 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define diameter 34		// wheel diameter
-#define RW 38			// radius from center to wheel
+#define diameter 40		// wheel diameter
+#define RW 41			// radius from center to wheel
 #define v_ratio 0.00082
 #define max_v_batt 8.10
 #define kickstart_v 0.0
@@ -56,7 +56,7 @@ typedef enum {
 #define intended_speed 180.0
 
 #define K_fwd 0.1
-#define K_rot 0.005
+#define K_rot 0.004
 #define K_turn 0.00//5
 #define K_str 0.0004
 
@@ -114,10 +114,10 @@ int motorL = 0;
 int motorR = 0;
 
 // this change better register
-const float base_v_fwd_L = 0.5;
-const float base_v_fwd_R = 0.84;
-const float base_v_turn_L = 0.65;//0.48;
-const float base_v_turn_R = 1.1;//0.82;
+const float base_v_fwd_L = 0.7;
+const float base_v_fwd_R = 1.0;
+const float base_v_turn_L = 0.7;//0.48;
+const float base_v_turn_R = 1.0;//0.82;
 //const float base_v_turn = 1.5;
 int fwd_movement = 0;
 int enc_right_mvt = 0;
@@ -293,15 +293,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-void reset_enc_dist()
-{
-	enc_left = 0;
-	enc_right = 0;
-	d_L = 0;
-	d_R = 0;
-	//d_center = 0;
-}
-
 void IR_scan()
 {
 	dist_t sensor = FL;
@@ -387,7 +378,7 @@ void move_forward()
 
 	while (1)
 	{
-		if ((d_center - prev_cell_distance >= 180) || wallCheck(FL) || wallCheck(FR))
+		if ((d_center - prev_cell_distance >= 180) || (wallCheck(FL) && wallCheck(FR)))
 		{
 			x = 10;
 			break;
@@ -396,11 +387,14 @@ void move_forward()
 
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	stop();
-	HAL_Delay(1000);
+	//HAL_Delay(1000);
 }
 
 void left_turn()
 {
+	HAL_Delay(500);
+
+	intended_angle += 90;
 	movement = turn_L;
 
 	initial_angle = angle;
@@ -419,7 +413,6 @@ void left_turn()
 	  }
 	}
 
-	reset_enc_dist();
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	stop();
 	HAL_Delay(500);
@@ -427,6 +420,9 @@ void left_turn()
 
 void right_turn()
 {
+	HAL_Delay(500);
+
+	intended_angle -= 90;
 	movement = turn_R;
 
 	initial_angle = angle;
@@ -445,7 +441,6 @@ void right_turn()
 	  }
 	}
 
-	reset_enc_dist();
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	stop();
 	HAL_Delay(500);
@@ -453,6 +448,9 @@ void right_turn()
 
 void about_turn()		// I swear this is a real term
 {
+	HAL_Delay(500);
+
+	intended_angle += 180;
 	movement = turn_180;
 
 	initial_angle = angle;
@@ -471,7 +469,6 @@ void about_turn()		// I swear this is a real term
 	  }
 	}
 
-	reset_enc_dist();
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	stop();
 	HAL_Delay(500);
@@ -534,6 +531,12 @@ int main(void)
   move_forward();
   move_forward();
   left_turn();
+  move_forward();
+  right_turn();
+  move_forward();
+  left_turn();
+  move_forward();
+  right_turn();
   move_forward();
 
 
@@ -942,6 +945,8 @@ static void ADC1_Select_CH9(void) {
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 	if (time_count % ((int)(callback_period * 1000)) == 0)
 	{
+		IR_scan();
+
 		switch(movement)
 		{
 			case stopped:
@@ -953,8 +958,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 				// find the difference between intended distance and actual distance
 				fwd_error = fwd_movement - intended_distance;
 
-				IR_scan();
-
 				left_side_error = wall_nominal[L] - IR_dists[L];
 				right_side_error = wall_nominal[R] - IR_dists[R];
 
@@ -963,9 +966,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 					str_error = right_side_error - left_side_error;
 					rot_error = 0;
 				}
+				else if (wallCheck(L) && !wallCheck(R))
+				{
+					str_error = -2 * left_side_error;
+					rot_error = 0;
+				}
+				else if (!wallCheck(L) && wallCheck(R))
+				{
+					str_error = 2 * right_side_error;
+				}
 				else	// no walls on either side
 				{
-					rot_error = enc_right - enc_left; // right diff - left diff
+					rot_error = (angle - intended_angle) % 360;//enc_right - enc_left; // right diff - left diff
 					str_error = 0;
 				}
 
