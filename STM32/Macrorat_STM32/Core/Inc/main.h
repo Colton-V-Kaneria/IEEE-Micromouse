@@ -85,12 +85,12 @@ void Error_Handler(void);
 #define EMIT_FL_GPIO_Port GPIOB
 #define MR_FWD_Pin GPIO_PIN_13
 #define MR_FWD_GPIO_Port GPIOB
-#define ML_BWD_Pin GPIO_PIN_14
-#define ML_BWD_GPIO_Port GPIOB
+#define ML_FWD_Pin GPIO_PIN_14
+#define ML_FWD_GPIO_Port GPIOB
 #define MR_BWD_Pin GPIO_PIN_15
 #define MR_BWD_GPIO_Port GPIOB
-#define ML_FWD_Pin GPIO_PIN_8
-#define ML_FWD_GPIO_Port GPIOA
+#define ML_BWD_Pin GPIO_PIN_8
+#define ML_BWD_GPIO_Port GPIOA
 #define EMIT_FR_Pin GPIO_PIN_5
 #define EMIT_FR_GPIO_Port GPIOB
 #define MR_ENC_B_Pin GPIO_PIN_6

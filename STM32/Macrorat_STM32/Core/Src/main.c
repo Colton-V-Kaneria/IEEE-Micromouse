@@ -47,8 +47,8 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define diameter 32		// wheel diameter
-#define RW 41			// radius from center to wheel
+#define diameter 34		// wheel diameter
+#define RW 38			// radius from center to wheel
 #define v_ratio 0.00082
 #define max_v_batt 8.10
 #define kickstart_v 0.0
@@ -82,10 +82,15 @@ uint16_t IR_data[4][15] = {{0}};
 uint16_t wall_standard[4] = {2500, 1040, 1030, 2590};
 uint16_t wall_nominal[4] = {200, 100, 100, 200};
 
+int wall_left;
+int wall_right;
+int wall_front_L;
+int wall_front_R;
+
 int32_t enc_left = 0;
 int32_t enc_right = 0;
-int32_t prev_enc_left = 0;
-int32_t prev_enc_right = 0;
+int32_t initial_enc_left = 0;
+int32_t initial_enc_right = 0;
 
 int32_t d_L = 0;
 int32_t d_R = 0;
@@ -109,10 +114,10 @@ int motorL = 0;
 int motorR = 0;
 
 // this change better register
-const float base_v_fwd_L = 0.45;
-const float base_v_fwd_R = 0.6435;
-const float base_v_turn_L = 0.53;
-const float base_v_turn_R = 0.745;
+const float base_v_fwd_L = 0.5;
+const float base_v_fwd_R = 0.84;
+const float base_v_turn_L = 0.65;//0.48;
+const float base_v_turn_R = 1.1;//0.82;
 //const float base_v_turn = 1.5;
 int fwd_movement = 0;
 int enc_right_mvt = 0;
@@ -133,9 +138,9 @@ float initial_v_batt = 0;
 int intended_distance = intended_speed * callback_period;
 int time_count = 0;
 
-move_t movement = stopped;
+int intended_angle = 0;
 
-dist_t sensor = FL;
+move_t movement = stopped;
 
 // const int K_fwd = ?;
 // testing to merge into main here
@@ -261,18 +266,6 @@ int calc_distance()
 
 int calc_angle()
 {
-//	int angle = (int)((d_R - d_L)/(2.0 * RW) * (180.0/M_PI)) % 360;
-//
-//	// These next statements ensure the result is between -180 and 180
-//	if (angle > 180)
-//	{
-//		angle -= 360;
-//	}
-//	else if (angle < -180)
-//	{
-//		angle += 360;
-//	}
-
 	return (int)((d_R - d_L)/(2.0 * RW) * (180.0/M_PI));
 }
 
@@ -300,14 +293,19 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-void reset_encoders()
+void reset_enc_dist()
 {
 	enc_left = 0;
 	enc_right = 0;
+	d_L = 0;
+	d_R = 0;
+	//d_center = 0;
 }
 
-void IR_test()
+void IR_scan()
 {
+	dist_t sensor = FL;
+
 	do
 	{
 		IR_dists[sensor] = scaled_average(sensor);
@@ -327,15 +325,20 @@ int wallCheck(dist_t sensor)
 	}
 }
 
-float min(float a, float b)
+float within_bounds(float f)
 {
-	return (a < b) ? a : b;
-}
-
-
-float max(float a, float b)
-{
-	return (a > b) ? a : b;
+	if (f < 0)
+	{
+		return 0;
+	}
+	else if (f > 1.5)
+	{
+		return 1.5;
+	}
+	else
+	{
+		return f;
+	}
 }
 
 void kickstart_motors()
@@ -373,6 +376,9 @@ void move_forward()
 
 	prev_cell_distance = d_center;
 
+//	TIM2->CCR4 = calc_PWM(base_v_fwd_L);
+//	TIM2->CCR3 = calc_PWM(base_v_fwd_R);
+
 	// set both motors to move forward
 	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
 	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
@@ -381,21 +387,21 @@ void move_forward()
 
 	while (1)
 	{
-		if (d_center - prev_cell_distance >= 180)
+		if ((d_center - prev_cell_distance >= 180) || wallCheck(FL) || wallCheck(FR))
 		{
+			x = 10;
 			break;
 		}
 	}
 
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	stop();
+	HAL_Delay(1000);
 }
 
 void left_turn()
 {
 	movement = turn_L;
-
-	reset_encoders();
 
 	initial_angle = angle;
 
@@ -413,16 +419,15 @@ void left_turn()
 	  }
 	}
 
+	reset_enc_dist();
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	stop();
-	reset_encoders();
+	HAL_Delay(500);
 }
 
 void right_turn()
 {
 	movement = turn_R;
-
-	reset_encoders();
 
 	initial_angle = angle;
 
@@ -440,16 +445,15 @@ void right_turn()
 	  }
 	}
 
+	reset_enc_dist();
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	stop();
-	reset_encoders();
+	HAL_Delay(500);
 }
 
 void about_turn()		// I swear this is a real term
 {
 	movement = turn_180;
-
-	reset_encoders();
 
 	initial_angle = angle;
 
@@ -467,9 +471,10 @@ void about_turn()		// I swear this is a real term
 	  }
 	}
 
+	reset_enc_dist();
 	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	stop();
-	reset_encoders();
+	HAL_Delay(500);
 }
 /* USER CODE END 0 */
 
@@ -515,16 +520,22 @@ int main(void)
 
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);	//turn off buzzer?
 
+//  TIM2->CCR4 = calc_PWM(base_v_fwd_L);
+//  TIM2->CCR3 = calc_PWM(base_v_fwd_R);
+//
+//  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
+//  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+//  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+//  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
+  HAL_Delay(1000);
   move_forward();
   right_turn();
   move_forward();
-//  move_forward();
-//  left_turn();
-//  move_forward();
-//  move_forward();
-//  left_turn();
-//  move_forward();
-//  move_forward();
+  move_forward();
+  left_turn();
+  move_forward();
+
 
   /* USER CODE END 2 */
 
@@ -533,7 +544,12 @@ int main(void)
 
   while (1)
   {
-    /* USER CODE END WHILE */
+//	  IR_scan();
+//	  wall_left = wallCheck(L);
+//	  wall_right = wallCheck(R);
+//	  wall_front_L = wallCheck(FL);
+//	  wall_front_R = wallCheck(FR);
+	  /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 //	  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
@@ -818,10 +834,10 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_FWD_Pin
-                          |ML_BWD_Pin|MR_BWD_Pin|EMIT_FR_Pin|BUZZER_Pin, GPIO_PIN_RESET);
+                          |ML_FWD_Pin|MR_BWD_Pin|EMIT_FR_Pin|BUZZER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
@@ -831,20 +847,20 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : EMIT_R_Pin EMIT_L_Pin EMIT_FL_Pin MR_FWD_Pin
-                           ML_BWD_Pin MR_BWD_Pin EMIT_FR_Pin BUZZER_Pin */
+                           ML_FWD_Pin MR_BWD_Pin EMIT_FR_Pin BUZZER_Pin */
   GPIO_InitStruct.Pin = EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_FWD_Pin
-                          |ML_BWD_Pin|MR_BWD_Pin|EMIT_FR_Pin|BUZZER_Pin;
+                          |ML_FWD_Pin|MR_BWD_Pin|EMIT_FR_Pin|BUZZER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : ML_FWD_Pin */
-  GPIO_InitStruct.Pin = ML_FWD_Pin;
+  /*Configure GPIO pin : ML_BWD_Pin */
+  GPIO_InitStruct.Pin = ML_BWD_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(ML_FWD_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(ML_BWD_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -931,15 +947,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 			case stopped:
 				break;
 			case forward:
-				angle = 0;
-
+				y = 6;
 				fwd_movement = d_center - prev_d_center;
 
 				// find the difference between intended distance and actual distance
 				fwd_error = fwd_movement - intended_distance;
 
-				IR_dists[L] = scaled_average(L);
-				IR_dists[R] = scaled_average(R);
+				IR_scan();
 
 				left_side_error = wall_nominal[L] - IR_dists[L];
 				right_side_error = wall_nominal[R] - IR_dists[R];
@@ -955,53 +969,44 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 					str_error = 0;
 				}
 
-				new_v_motor_L = base_v_fwd_L - K_fwd * fwd_error + K_rot * rot_error + K_str * str_error;
-				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_fwd_R - K_fwd * fwd_error - K_rot * rot_error - K_str * str_error;
-				new_v_motor_R = max(new_v_motor_R, 0);
+				new_v_motor_L = within_bounds(base_v_fwd_L - K_fwd * fwd_error + K_rot * rot_error + K_str * str_error);
+				new_v_motor_R = within_bounds(base_v_fwd_R - K_fwd * fwd_error - K_rot * rot_error - K_str * str_error);
 
 				// IMPORTANT: left motor is channel 4, right motor is channel 3
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
 				TIM2->CCR3 = calc_PWM(new_v_motor_R);
 
-				prev_d_center = d_center;
-				prev_enc_left = enc_left;
-				prev_enc_right = enc_right;
 				break;
 			case turn_L:
-				rot_error = enc_right + enc_left;
+//				rot_error = (enc_right - initial_enc_right) + (enc_left - initial_enc_left);
 
-				new_v_motor_L = base_v_turn_L + K_turn * rot_error;	// angle is positive here so we should be good
-				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_turn_R - K_turn * rot_error;
-				new_v_motor_R = max(new_v_motor_R, 0);
+				new_v_motor_L = within_bounds(base_v_turn_L);// + K_turn * rot_error);
+				new_v_motor_R = within_bounds(base_v_turn_R);// - K_turn * rot_error);
 
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
 				TIM2->CCR3 = calc_PWM(new_v_motor_R);
 				break;
 			case turn_R:
-				rot_error = enc_left + enc_right;
+//				rot_error = enc_left + enc_right;
 
-				new_v_motor_L = base_v_turn_L - K_turn * rot_error;
-				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_turn_R + K_turn * rot_error;
-				new_v_motor_R = max(new_v_motor_R, 0);
+				new_v_motor_L = within_bounds(base_v_turn_L);// - K_turn * rot_error);
+				new_v_motor_R = within_bounds(base_v_turn_R);// + K_turn * rot_error);
 
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
 				TIM2->CCR3 = calc_PWM(new_v_motor_R);
 				break;
 			case turn_180:
-				rot_error = enc_right + enc_left;
+//				rot_error = enc_right + enc_left;
 
-				new_v_motor_L = base_v_turn_L + K_turn * rot_error;
-				new_v_motor_L = max(new_v_motor_L, 0);
-				new_v_motor_R = base_v_turn_R - K_turn * rot_error;
-				new_v_motor_R = max(new_v_motor_R, 0);
+				new_v_motor_L = within_bounds(base_v_turn_L);// + K_turn * rot_error);
+				new_v_motor_R = within_bounds(base_v_turn_R);// - K_turn * rot_error);
 
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
 				TIM2->CCR3 = calc_PWM(new_v_motor_R);
 				break;
 		}
+
+		prev_d_center = d_center;
 	}
 
 	time_count++;
