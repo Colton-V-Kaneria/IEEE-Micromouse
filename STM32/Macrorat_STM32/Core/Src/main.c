@@ -51,13 +51,13 @@ typedef enum {
 #define RW 41			// radius from center to wheel
 #define v_ratio 0.00082
 #define max_v_batt 8.10
-#define kickstart_v 0.0
+#define kickstart_v 0.8
 #define callback_period 0.001
 #define intended_speed 180.0
 
 #define K_fwd 0.1
 #define K_rot 0.004
-#define K_turn 0.00//5
+#define K_turn 0.01
 #define K_str 0.0004
 
 #define loop_period 1
@@ -114,10 +114,10 @@ int motorL = 0;
 int motorR = 0;
 
 // this change better register
-const float base_v_fwd_L = 0.7;
-const float base_v_fwd_R = 1.0;
+const float base_v_fwd_L = 0.5;
+const float base_v_fwd_R = 0;
 const float base_v_turn_L = 0.7;//0.48;
-const float base_v_turn_R = 1.0;//0.82;
+const float base_v_turn_R = 0.81;//0.82;
 //const float base_v_turn = 1.5;
 int fwd_movement = 0;
 int enc_right_mvt = 0;
@@ -341,7 +341,7 @@ void kickstart_motors()
 
 	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
 	HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+	HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
 	HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 
 	HAL_Delay(50);
@@ -394,10 +394,12 @@ void left_turn()
 {
 	HAL_Delay(500);
 
-	intended_angle += 90;
+	intended_angle  = intended_angle + 90;
 	movement = turn_L;
 
 	initial_angle = angle;
+	initial_enc_left = enc_left;
+	initial_enc_right = enc_right;
 
 	// set left motor to backward and right motor to forward
 	HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
@@ -422,7 +424,7 @@ void right_turn()
 {
 	HAL_Delay(500);
 
-	intended_angle -= 90;
+	intended_angle  = intended_angle - 90;
 	movement = turn_R;
 
 	initial_angle = angle;
@@ -450,7 +452,7 @@ void about_turn()		// I swear this is a real term
 {
 	HAL_Delay(500);
 
-	intended_angle += 180;
+	intended_angle = intended_angle + 180;
 	movement = turn_180;
 
 	initial_angle = angle;
@@ -517,28 +519,17 @@ int main(void)
 
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, 0);	//turn off buzzer?
 
-//  TIM2->CCR4 = calc_PWM(base_v_fwd_L);
-//  TIM2->CCR3 = calc_PWM(base_v_fwd_R);
-//
-//  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
-//  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
-//  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
-//  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+  HAL_Delay(500);
 
-  HAL_Delay(1000);
-  move_forward();
-  right_turn();
-  move_forward();
-  move_forward();
-  left_turn();
-  move_forward();
-  right_turn();
-  move_forward();
-  left_turn();
-  move_forward();
-  right_turn();
-  move_forward();
+  kickstart_motors();
 
+  TIM2->CCR4 = calc_PWM(base_v_fwd_L);
+  TIM2->CCR3 = calc_PWM(base_v_fwd_R);
+
+  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 1);
+  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 1);
+  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
 
   /* USER CODE END 2 */
 
@@ -547,17 +538,20 @@ int main(void)
 
   while (1)
   {
-//	  IR_scan();
-//	  wall_left = wallCheck(L);
-//	  wall_right = wallCheck(R);
-//	  wall_front_L = wallCheck(FL);
-//	  wall_front_R = wallCheck(FR);
-	  /* USER CODE END WHILE */
+//	  if (d_center > 10)
+//	  {
+//		  break;
+//	  }
+    /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//	  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-//	  HAL_Delay(500);  /* Insert delay 500 ms */
   }
+
+  HAL_GPIO_WritePin(ML_FWD_GPIO_Port, ML_FWD_Pin, 0);
+  HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, 0);
+  HAL_GPIO_WritePin(MR_FWD_GPIO_Port, MR_FWD_Pin, 0);
+  HAL_GPIO_WritePin(MR_BWD_GPIO_Port, MR_BWD_Pin, 0);
+
   /* USER CODE END 3 */
 }
 
@@ -836,8 +830,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_FWD_Pin
-                          |ML_FWD_Pin|MR_BWD_Pin|EMIT_FR_Pin|BUZZER_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_BWD_Pin
+                          |ML_FWD_Pin|MR_FWD_Pin|EMIT_FR_Pin|BUZZER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ML_BWD_GPIO_Port, ML_BWD_Pin, GPIO_PIN_RESET);
@@ -849,10 +843,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : EMIT_R_Pin EMIT_L_Pin EMIT_FL_Pin MR_FWD_Pin
-                           ML_FWD_Pin MR_BWD_Pin EMIT_FR_Pin BUZZER_Pin */
-  GPIO_InitStruct.Pin = EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_FWD_Pin
-                          |ML_FWD_Pin|MR_BWD_Pin|EMIT_FR_Pin|BUZZER_Pin;
+  /*Configure GPIO pins : EMIT_R_Pin EMIT_L_Pin EMIT_FL_Pin MR_BWD_Pin
+                           ML_FWD_Pin MR_FWD_Pin EMIT_FR_Pin BUZZER_Pin */
+  GPIO_InitStruct.Pin = EMIT_R_Pin|EMIT_L_Pin|EMIT_FL_Pin|MR_BWD_Pin
+                          |ML_FWD_Pin|MR_FWD_Pin|EMIT_FR_Pin|BUZZER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -974,6 +968,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 				else if (!wallCheck(L) && wallCheck(R))
 				{
 					str_error = 2 * right_side_error;
+					rot_error = 0;
 				}
 				else	// no walls on either side
 				{
@@ -990,10 +985,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 
 				break;
 			case turn_L:
-//				rot_error = (enc_right - initial_enc_right) + (enc_left - initial_enc_left);
+				rot_error = (angle - intended_angle) % 360;
 
-				new_v_motor_L = within_bounds(base_v_turn_L);// + K_turn * rot_error);
-				new_v_motor_R = within_bounds(base_v_turn_R);// - K_turn * rot_error);
+				new_v_motor_L = within_bounds(base_v_turn_L + K_turn * rot_error);
+				new_v_motor_R = within_bounds(base_v_turn_R - K_turn * rot_error);
 
 				TIM2->CCR4 = calc_PWM(new_v_motor_L);
 				TIM2->CCR3 = calc_PWM(new_v_motor_R);
